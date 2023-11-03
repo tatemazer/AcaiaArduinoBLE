@@ -19,9 +19,10 @@
 #define WRITE_CHAR "49535343-8841-43f4-a8d4-ecbe34729bb3"
 #define READ_CHAR  "49535343-1e4d-4bd9-ba61-23c647249616"
 
-byte identify[21] = { 0xef, 0xdd, 0x0b, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x9a, 0x6d, 0x00};
-byte heartbeat[7] = { 0xef, 0xdd, 0x00, 0x02, 0x00, 0x02, 0x00 };
-byte tare[20]     = { 0xef, 0xdd, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+byte identify[21]             = { 0xef, 0xdd, 0x0b, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x9a, 0x6d, 0x00};
+byte heartbeat[7]             = { 0xef, 0xdd, 0x00, 0x02, 0x00, 0x02, 0x00 };
+byte tare[20]                 = { 0xef, 0xdd, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+byte notification_request[14] = { 0xef, 0xdd, 0x0c, 0x09, 0x00, 0x01, 0x01, 0x02, 0x02, 0x05, 0x03, 0x04, 0x15, 0x06 };
     
 #include <ArduinoBLE.h>
 
@@ -74,34 +75,38 @@ void loop() {
 
     unsigned long lastReset = millis();
 
+    write.writeValue(notification_request,14);
+
     do{
-      /*
+      
       //this doesnt seem to work, values are nonsensical and they only come 
       // when the tare/heartbeat is written.
       if(read.valueUpdated()){
 
         int length = read.valueLength();
-        if(length>0){
-          Serial.print("new datapoint of length ");
-          Serial.println(length);
+        if(length==13){
+          //Serial.print("new datapoint of length ");
+          //Serial.println(length);
           byte input[] = {0,0,0,0,0,0,0,0,0,0,0,0,0};
           read.readValue(input, 13);
           for(int i=0; i<length; i++){
             char hexChar[2];
             sprintf(hexChar, "%02X ", input[i]);
-            Serial.print(hexChar);
+            //Serial.print(hexChar);
           }
+          Serial.print("=");
+          Serial.print((((input[6] & 0xff) << 8) + (input[5] & 0xff))/100.0);
           Serial.println();
         }
       }
-      */
-      if(millis() - lastReset > 3000 && write.writeValue(heartbeat, 7)){
-        //Serial.println("heartbeat write successful");
+      
+      if(millis() - lastReset > 2750){
+        write.writeValue(heartbeat, 7);
         lastReset = millis();
 
-        if(write.writeValue(tare, 20)){
+        /*if(write.writeValue(tare, 20)){
           Serial.println("tare write successful");
-        }
+        }*/
       }
         
 
