@@ -1,9 +1,11 @@
 /*
   AcaiaArduinoBLE.ino - Example of connecting an acaia scale to an arduino device using the ArduinoBLE library
 
-  Connects to an acaia scale named ACAIA_NAME, and sends a TARE command every 3 seconds.
+  Immediately Connects to an acaia scale named ACAIA_NAME, 
+  tare's the scale when the "in" gpio is triggered (active low),
+  and then triggers the "out" gpio to stop the shot once ( END_WEIGHT - WEIGHT OFFSET ) is achieved.
 
-  Tested on a Acaia Pyxis
+  Tested on a Acaia Pyxis, Arduino nano ESP32, and La Marzocco GS3
 
   Created by Tate Mazer, 2023.
 
