@@ -1,0 +1,8 @@
+AcaiaArduinoBLE KEYWORD1
+init    KEYWORD2
+tare    KEYWORD2
+heartbeat   KEYWORD2
+getWeight   KEYWORD2
+heartbeatRequired   KEYWORD2
+isConnected KEYWORD2
+newWeightAvailable  KEYWORD2
