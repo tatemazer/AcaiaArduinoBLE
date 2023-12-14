@@ -1,8 +1,5 @@
 #include <AcaiaArduinoBLE.h>
 
-
-//"34:81:f4:53:1e:83"
-
 AcaiaArduinoBLE acaia;
 void setup() {
   // Optionally add your Mac Address as an argument: acaia.init("##:##:##:##:##:##");
