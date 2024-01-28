@@ -20,7 +20,9 @@ Firmware:
 
 ☑ Receive Weight Data from Pyxis
 
-⬜ Confirm Compatibility with Lunar
+❌ Confirm Compatibility with Lunar (Pre-2021): Currently not compatible. Will require Firmware changes.
+
+⬜ Confirm Compatibility with Lunar 2021:  Appears likely.
 
 ⬜ Latching-switch support (LM Mini, LM Micra, etc)
 
