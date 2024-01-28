@@ -10,6 +10,58 @@ This library is intended to be used with any arduino device which is compatible 
 ## Printed Circuit Board
 The included "shotStopper" example code uses the ShotStopper PCB to make it simple to control your espresso machine using the scale. Files are hosted on [altium 365](https://365.altium.com/files/A15F83F1-2418-4843-B2E7-787275773560).
 
+## Project Status
+
+Firmware:
+
+☑ Connect Acaia Pyxis to ESP32
+
+☑ Send Tare Command to Pyxis
+
+☑ Receive Weight Data from Pyxis
+
+⬜ Confirm Compatibility with Lunar
+
+⬜ Latching-switch support (LM Mini, LM Micra, etc)
+
+⬜ Auto-reconnect
+
+⬜ Improve Tare Command Reliability
+
+⬜ Investigate method to change setpoint (bluetooth?)
+
+Hardware:
+
+☑ PCB Design for Low Voltage Switches (V1.1)
+
+☑ Confirm Compatibility with La Marzocco GS3 AV
+
+☑ Confirm Compatibility with Rancilio Silvia Pro (and Pro X)
+
+❌ Confirm Compatibility with La Marzocco Linea Classic S (Not Compatible, requires investigation)
+
+☑ 3D-Printed Half Case
+
+⬜ Confirm Compatibility with La Marzocco Mini/Micra
+
+⬜ Confirm Compatibility with Breville
+
+⬜ Support for High-Voltage Switches (Hall-Effect Sensor and SSR?)
+
+Sales:
+
+☑ Beta Users Determined
+
+⬜ Beta Units Built
+
+⬜ Beta Units Shipped
+
+⬜ Beta Test Complete
+
+⬜ Sales Open
+
+
+
 ## Demo
 
 You can find a demo on Youtube:
