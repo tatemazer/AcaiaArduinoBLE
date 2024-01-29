@@ -11,12 +11,19 @@
 #ifndef AcaiaArduinoBLE_h
 #define AcaiaArduinoBLE_h
 
-#define WRITE_CHAR "49535343-8841-43f4-a8d4-ecbe34729bb3"
-#define READ_CHAR  "49535343-1e4d-4bd9-ba61-23c647249616"
+#define WRITE_CHAR_OLD_VERSION "2a80"
+#define READ_CHAR_OLD_VERSION  "2a80"
+#define WRITE_CHAR_NEW_VERSION "49535343-8841-43f4-a8d4-ecbe34729bb3"
+#define READ_CHAR_NEW_VERSION  "49535343-1e4d-4bd9-ba61-23c647249616"
 #define HEARTBEAT_PERIOD_MS 2750
 
 #include "Arduino.h"
 #include <ArduinoBLE.h>
+
+enum scale_type{
+    OLD, // Lunar (pre-2021)
+    NEW  // Lunar (2021), Pyxis
+};
 
 class AcaiaArduinoBLE{
     public:
@@ -35,6 +42,7 @@ class AcaiaArduinoBLE{
         BLECharacteristic   _read;
         long                _lastHeartBeat;
         bool                _connected;
+        scale_type          _type;
 
 
 };

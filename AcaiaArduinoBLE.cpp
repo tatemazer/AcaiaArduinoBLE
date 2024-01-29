@@ -8,9 +8,9 @@
 #include "AcaiaArduinoBLE.h"
 #include <ArduinoBLE.h>
 
-byte IDENTIFY[21]             = { 0xef, 0xdd, 0x0b, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x9a, 0x6d, 0x00};
+byte IDENTIFY[20]             = { 0xef, 0xdd, 0x0b, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x9a, 0x6d};
 byte HEARTBEAT[7]             = { 0xef, 0xdd, 0x00, 0x02, 0x00, 0x02, 0x00 };
-byte TARE[20]                 = { 0xef, 0xdd, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+byte TARE[6]                  = { 0xef, 0xdd, 0x04, 0x00, 0x00, 0x00};
 byte NOTIFICATION_REQUEST[14] = { 0xef, 0xdd, 0x0c, 0x09, 0x00, 0x01, 0x01, 0x02, 0x02, 0x05, 0x03, 0x04, 0x15, 0x06 };
 
 
@@ -55,8 +55,21 @@ bool AcaiaArduinoBLE::init(String mac){
                 return false;
             }
 
-            _write = peripheral.characteristic(WRITE_CHAR);
-            _read = peripheral.characteristic(READ_CHAR);
+            if(peripheral.characteristic(READ_CHAR_OLD_VERSION).canSubscribe()){
+                Serial.println("Old version Acaia Detected");
+                _type = OLD;
+                
+            }else if(peripheral.characteristic(READ_CHAR_NEW_VERSION).canSubscribe()){
+                Serial.println("New version Acaia Detected");
+                _type = NEW;
+            }
+            else{
+                Serial.println("unable to subscribe to READ");
+                return false;
+            }
+
+            _write = peripheral.characteristic(_type == OLD ? WRITE_CHAR_OLD_VERSION : WRITE_CHAR_NEW_VERSION);
+            _read = peripheral.characteristic( _type == OLD ? READ_CHAR_OLD_VERSION  : READ_CHAR_NEW_VERSION );
 
             if(!_read.canSubscribe()){
                 Serial.println("unable to subscribe to READ");
@@ -121,8 +134,20 @@ bool AcaiaArduinoBLE::isConnected(){
 }
 bool AcaiaArduinoBLE::newWeightAvailable(){
     byte input[] = {0,0,0,0,0,0,0,0,0,0,0,0,0};
-    if(_read.valueUpdated() && _read.valueLength() == 13 && _read.readValue(input,13) && input[4] == 0x05){
+    if(NEW == _type 
+      && _read.valueUpdated() 
+      && _read.valueLength() == 13 
+      && _read.readValue(input,13) 
+      && input[4] == 0x05
+      ){
         _currentWeight = (((input[6] & 0xff) << 8) + (input[5] & 0xff))/100.0;
+        return true;
+    }else if(OLD == _type 
+      && _read.valueUpdated() 
+      && _read.valueLength() == 10
+      && _read.readValue(input,10) 
+      ){
+        _currentWeight = (((input[3] & 0xff) << 8) + (input[2] & 0xff))/100.0;
         return true;
     }else{
         return false;

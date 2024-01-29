@@ -2,7 +2,7 @@
 Acaia Scale Gateway using the ArduinoBLE library for devices such as the esp32, arduino nano esp32, and arduino nano iot 33.
 This is an Arduino Library which can be found in the Arduino IDE Library Manager.
 
-Tested on the Arduino Nano ESP32 and Acaia Pyxis, using Arduino IDE 2.2.1 and ArduinoBLE 1.3.6
+Tested on the Arduino Nano ESP32, Nano 33 IoT, Acaia Pyxis, Acaia Lunar Pre-2021, using Arduino IDE 2.2.1 and ArduinoBLE 1.3.6
 
 ## Requirements
 This library is intended to be used with any arduino device which is compatible with the [ArduinoBLE](https://www.arduino.cc/reference/en/libraries/arduinoble/) library.
@@ -20,11 +20,13 @@ Firmware:
 
 ☑ Receive Weight Data from Pyxis
 
-❌ Confirm Compatibility with Lunar (Pre-2021): Currently not compatible. Will require Firmware changes.
+☑ shotStopper Espresso Machine Brew-By-Weight Firmware
 
-⬜ Confirm Compatibility with Lunar 2021:  Appears likely.
+☑ Confirm Compatibility with Lunar (Pre-2021)
 
 ⬜ Latching-switch support (LM Mini, LM Micra, etc)
+
+⬜ Confirm Compatibility with Lunar 2021:  Appears likely.
 
 ⬜ Auto-reconnect
 
@@ -75,6 +77,9 @@ You can find a demo on Youtube:
 2. Only supports Grams and positive weight values.
 3. Reconnection is unreliable. Power Cycle is best.
 4. Yet to implement shotStopper example code for "latching" brew switches (ex: Linea Mini)
+5. Arduino Nano ESP32 has a more reliable connection than the Arduino Nano IoT 33 
 
 # Acknowledgement
-This is largely a basic port of the [LunarGateway](https://github.com/frowin/LunarGateway/) library written for the ESP32.
+This is largely a basic port of the  [LunarGateway](https://github.com/frowin/LunarGateway/) library written for the ESP32.
+
+In addition to some minor notes from [pyacaia](https://github.com/lucapinello/pyacaia) library written for raspberryPI.
