@@ -140,14 +140,15 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
       && _read.readValue(input,13) 
       && input[4] == 0x05
       ){
-        _currentWeight = (((input[6] & 0xff) << 8) + (input[5] & 0xff))/100.0;
+        //Grab weight bytes and apply scaling based on the unit byte (9)
+        _currentWeight = (((input[6] & 0xff) << 8) + (input[5] & 0xff))/pow(10,input[9]);
         return true;
     }else if(OLD == _type 
       && _read.valueUpdated() 
       && _read.valueLength() == 10
       && _read.readValue(input,10) 
       ){
-        _currentWeight = (((input[3] & 0xff) << 8) + (input[2] & 0xff))/100.0;
+        _currentWeight = (((input[3] & 0xff) << 8) + (input[2] & 0xff))/pow(10,input[9]);
         return true;
     }else{
         return false;

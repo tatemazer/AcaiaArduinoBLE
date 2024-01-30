@@ -24,9 +24,9 @@ Firmware:
 
 ☑ Confirm Compatibility with Lunar (Pre-2021)
 
-⬜ Latching-switch support (LM Mini, LM Micra, etc)
+☑ Confirm Compatibility with Lunar 2021
 
-⬜ Confirm Compatibility with Lunar 2021:  Appears likely.
+⬜ Latching-switch support (LM Mini, LM Micra, etc)
 
 ⬜ Auto-reconnect
 
