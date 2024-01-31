@@ -2,8 +2,11 @@
 
 AcaiaArduinoBLE acaia;
 void setup() {
+  Serial.begin(115200);
+  while(!Serial){}
+  Serial.println("Scale Interface test");
   // Optionally add your Mac Address as an argument: acaia.init("##:##:##:##:##:##");
-  acaia.init(); 
+  acaia.init();
 }
 
 void loop() {
