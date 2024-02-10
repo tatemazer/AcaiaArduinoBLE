@@ -99,7 +99,7 @@ bool AcaiaArduinoBLE::init(String mac){
             }
 	    _write = peripheral.characteristic(WRITE_CHAR_FELICITA);
 	    _read = peripheral.characteristic(READ_CHAR_FELICITA);
-	    Serial.println("Peripheral Characteristics Set Felicita");
+	    Serial.println("Peripheral Characteristics set Felicita");
 #endif
 	    
             if(!_read.canSubscribe()){
@@ -183,6 +183,19 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
       && _read.readValue(input,10) 
       ){
         _currentWeight = (((input[3] & 0xff) << 8) + (input[2] & 0xff))/100.0;
+        return true;
+    }else if(FELICITA == _type 
+      && _read.valueUpdated() 
+     // && _read.valueLength() == 13 
+      && _read.readValue(input,13) 
+     // && input[4] == 0x05
+      ){
+	/*        for (uint8_t i=0;i<13;i++){
+	  Serial.print(i);
+	  Serial.print(" ");
+	  Serial.println(input[i],HEX );
+	  }*/
+	_currentWeight = ( input[2] == 0x2B ? 1  : -1 )*((input[3] -0x30)*1000 + (input[4] -0x30)*100 + (input[5] -0x30)*10 + (input[6] -0x30)*1 + (input[7] -0x30)*0.1 + (input[8] -0x30)*0.01);
         return true;
     }else{
         return false;
