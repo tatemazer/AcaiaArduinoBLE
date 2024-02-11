@@ -1,8 +1,8 @@
-# AcaiaArduinoBLE
-Acaia Scale Gateway using the ArduinoBLE library for devices such as the esp32, arduino nano esp32, and arduino nano iot 33.
+# Acaia_Felicita_ArduinoBLE
+Acaia /Felicita Scale Gateway using the ArduinoBLE library for devices such as the esp32, arduino nano esp32, and arduino nano iot 33.
 This is an Arduino Library which can be found in the Arduino IDE Library Manager.
 
-Tested on the Arduino Nano ESP32, Nano 33 IoT, Acaia Pyxis, Acaia Lunar Pre-2021, using Arduino IDE 2.2.1 and ArduinoBLE 1.3.6
+Tested on the Arduino Nano ESP32, Nano 33 IoT, Nano 33 BLE, Acaia Pyxis, Acaia Lunar Pre-2021, Felicita Arc using Arduino IDE 2.3.0, 2.2.1 and ArduinoBLE 1.3.6
 
 ## Requirements
 This library is intended to be used with any arduino device which is compatible with the [ArduinoBLE](https://www.arduino.cc/reference/en/libraries/arduinoble/) library.
@@ -33,6 +33,17 @@ Firmware:
 ⬜ Improve Tare Command Reliability
 
 ⬜ Investigate method to change setpoint (bluetooth?)
+
+Scale Compatibility:
+
+☑ Acaia Pyxis
+
+☑ Acaia Lunar
+
+☑ Acaia Lunar (Pre-2021)
+
+☑ Felicita Arc
+
 
 Hardware:
 
@@ -74,7 +85,7 @@ You can find a demo on Youtube:
 
 ## Bugs/Missing
 1. Tare command is less reliable than pressing the tare button.
-2. Only supports Grams and positive weight values.
+2. Only supports Grams and positive weight values for Acaia, Felicita Arc supports negative Values.
 3. Reconnection is unreliable. Power Cycle is best.
 4. Yet to implement shotStopper example code for "latching" brew switches (ex: Linea Mini)
 5. Arduino Nano ESP32 has a more reliable connection than the Arduino Nano IoT 33 
@@ -83,3 +94,5 @@ You can find a demo on Youtube:
 This is largely a basic port of the  [LunarGateway](https://github.com/frowin/LunarGateway/) library written for the ESP32.
 
 In addition to some minor notes from [pyacaia](https://github.com/lucapinello/pyacaia) library written for raspberryPI.
+
+This is a fork from Tate Mazers library https://github.com/tatemazer/AcaiaArduinoBLE , adding Felicita Arc support.
