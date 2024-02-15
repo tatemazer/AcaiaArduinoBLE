@@ -8,30 +8,19 @@
   Pio Baettig: Adding Felicita Arc support 
 
   Known Bugs:
-    * Only supports Grams and positive weight values
+    * Only supports Grams
     * Reconnection is unreliable. Power Cycle is best.
 */
 #ifndef AcaiaArduinoBLE_h
 #define AcaiaArduinoBLE_h
 
-#define FELICITA_ARC
-//#define ACAIA
-
-#ifdef ACAIA
 #define WRITE_CHAR_OLD_VERSION "2a80"
 #define READ_CHAR_OLD_VERSION  "2a80"
 #define WRITE_CHAR_NEW_VERSION "49535343-8841-43f4-a8d4-ecbe34729bb3"
 #define READ_CHAR_NEW_VERSION  "49535343-1e4d-4bd9-ba61-23c647249616"
-#endif
-#ifdef FELICITA_ARC
 #define WRITE_CHAR_FELICITA "ffe1"
 #define READ_CHAR_FELICITA  "ffe1"
-//#define READ_CHAR_FELICITA "00002a05-0000-1000-8000-00805f9b34fb"
-//#define READ_CHAR_FELICITA "0000ffe1-0000-1000-8000-00805f9b34fb"
- //#define WRITE_CHAR_FELICITA  "0000ffe0-0000-1000-8000-00805f9b34fb"
-#endif
 #define HEARTBEAT_PERIOD_MS 2750
-
 
 #include "Arduino.h"
 #include <ArduinoBLE.h>
