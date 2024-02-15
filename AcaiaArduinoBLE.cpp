@@ -18,12 +18,9 @@ Adding Felicita Arc Support, Pio Baettig
 byte IDENTIFY[20]             = { 0xef, 0xdd, 0x0b, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x9a, 0x6d};
 byte HEARTBEAT[7]             = { 0xef, 0xdd, 0x00, 0x02, 0x00, 0x02, 0x00 };
 byte NOTIFICATION_REQUEST[14] = { 0xef, 0xdd, 0x0c, 0x09, 0x00, 0x01, 0x01, 0x02, 0x02, 0x05, 0x03, 0x04, 0x15, 0x06 };
-#ifdef ACAIA
-byte TARE[6]                  = { 0xef, 0xdd, 0x04, 0x00, 0x00, 0x00};
-#endif
-#ifdef FELICITA_ARC
-byte TARE[1]= {0x54};
-#endif
+
+byte TARE_ACAIA[6]                  = { 0xef, 0xdd, 0x04, 0x00, 0x00, 0x00};
+byte TARE_FELICITA[1]= {0x54};
 
 AcaiaArduinoBLE::AcaiaArduinoBLE(){
     _currentWeight = 0;
@@ -31,16 +28,7 @@ AcaiaArduinoBLE::AcaiaArduinoBLE(){
 }
 
 bool AcaiaArduinoBLE::init(String mac){
-  Serial.println("Starting init");
-
-#ifdef ACAIA
-  Serial.println("Searching for ACAIA");
-#endif
-#ifdef FELICITA_ARC
-  Serial.println("Searching for FELICITA Arc");
-#endif
-		 
-  if (!BLE.begin()) {
+    if (!BLE.begin()) {
         Serial.println("Failed to enable BLE!");
         return false;
     }
@@ -76,32 +64,34 @@ bool AcaiaArduinoBLE::init(String mac){
                 peripheral.disconnect();
                 return false;
             }
-#ifdef ACAIA
+
             if(peripheral.characteristic(READ_CHAR_OLD_VERSION).canSubscribe()){
                 Serial.println("Old version Acaia Detected");
                 _type = OLD;
-                
+                _write =peripheral.characteristic(WRITE_CHAR_OLD_VERSION);
+                _read =peripheral.characteristic(READ_CHAR_OLD_VERSION);
+
             }else if(peripheral.characteristic(READ_CHAR_NEW_VERSION).canSubscribe()){
                 Serial.println("New version Acaia Detected");
                 _type = NEW;
-            }
-            _write = peripheral.characteristic(_type == OLD ? WRITE_CHAR_OLD_VERSION : WRITE_CHAR_NEW_VERSION);
-            _read = peripheral.characteristic( _type == OLD ? READ_CHAR_OLD_VERSION  : READ_CHAR_NEW_VERSION );
-#endif
-#ifdef FELICITA_ARC
-	    if(peripheral.characteristic(READ_CHAR_FELICITA).canSubscribe()){
+                _write =peripheral.characteristic(WRITE_CHAR_NEW_VERSION);
+                _read =peripheral.characteristic(READ_CHAR_NEW_VERSION);
+
+            } else if(peripheral.characteristic(READ_CHAR_FELICITA).canSubscribe()){
                 Serial.println("Felicita Arc Detected");
                 _type = FELICITA;
-            }
-            else{
-                Serial.println("unable to subscribe to READ: Felicita");
-                return false;
-            }
 	    _write = peripheral.characteristic(WRITE_CHAR_FELICITA);
 	    _read = peripheral.characteristic(READ_CHAR_FELICITA);
-	    Serial.println("Peripheral Characteristics set Felicita");
-#endif
-	    
+
+            }
+            else{
+                Serial.println("unable to subscribe to READ");
+                return false;
+            }
+
+//            _write = peripheral.characteristic(_type == OLD ? WRITE_CHAR_OLD_VERSION : WRITE_CHAR_NEW_VERSION);
+//            _read = peripheral.characteristic( _type == OLD ? READ_CHAR_OLD_VERSION  : READ_CHAR_NEW_VERSION );
+
             if(!_read.canSubscribe()){
                 Serial.println("unable to subscribe to READ");
                 return false;
@@ -128,17 +118,13 @@ bool AcaiaArduinoBLE::init(String mac){
             return true;
         }
     }while(millis() < 10000);
-#ifdef ACAIA
-    Serial.println("failed to find Acaia Device");
-#endif
-#ifdef FELICITA_ARC
-    Serial.println("failed to find Felicita Device");
-#endif
+
+    Serial.println("failed to find Acaia or Felicita Device");
     return false;    
 }
 
 bool AcaiaArduinoBLE::tare(){
-    if(_write.writeValue(TARE, 20)){
+    if(_write.writeValue(( _type == OLD || NEW ? TARE_ACAIA  : TARE_FELICITA), 20)){
           Serial.println("tare write successful");
           return true;
     }else{
@@ -162,7 +148,11 @@ float AcaiaArduinoBLE::getWeight(){
 }
 
 bool AcaiaArduinoBLE::heartbeatRequired(){
-    return (millis() - _lastHeartBeat) > HEARTBEAT_PERIOD_MS;
+    if(_type == OLD || NEW){
+        return (millis() - _lastHeartBeat) > HEARTBEAT_PERIOD_MS;
+    } else {
+    return 0;
+    }
 }
 bool AcaiaArduinoBLE::isConnected(){
     return _connected;
@@ -175,26 +165,30 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
       && _read.readValue(input,13) 
       && input[4] == 0x05
       ){
-        _currentWeight = (((input[6] & 0xff) << 8) + (input[5] & 0xff))/100.0;
+        //Grab weight bytes (5 and 6) 
+        // apply scaling based on the unit byte (9)
+        // get sign byte (10)
+        _currentWeight = (((input[6] & 0xff) << 8) + (input[5] & 0xff)) 
+                        / pow(10,input[9])
+                        * ((input[10] & 0x02) ? -1 : 1);
         return true;
     }else if(OLD == _type 
       && _read.valueUpdated() 
       && _read.valueLength() == 10
       && _read.readValue(input,10) 
       ){
-        _currentWeight = (((input[3] & 0xff) << 8) + (input[2] & 0xff))/100.0;
+        //Grab weight bytes (2 and 3),
+        // apply scaling based on the unit byte (6)
+        // get sign byte (7)
+        _currentWeight = (((input[3] & 0xff) << 8) + (input[2] & 0xff)) 
+                        / pow(10, input[6]) 
+                        * ((input[7] & 0x02) ? -1 : 1);
         return true;
     }else if(FELICITA == _type 
       && _read.valueUpdated() 
      // && _read.valueLength() == 13 
       && _read.readValue(input,13) 
-     // && input[4] == 0x05
       ){
-	/*        for (uint8_t i=0;i<13;i++){
-	  Serial.print(i);
-	  Serial.print(" ");
-	  Serial.println(input[i],HEX );
-	  }*/
 	_currentWeight = ( input[2] == 0x2B ? 1  : -1 )*((input[3] -0x30)*1000 + (input[4] -0x30)*100 + (input[5] -0x30)*10 + (input[6] -0x30)*1 + (input[7] -0x30)*0.1 + (input[8] -0x30)*0.01);
         return true;
     }else{
