@@ -11,9 +11,6 @@ Adding Felicita Arc Support, Pio Baettig
 #include "AcaiaArduinoBLE.h"
 #include <ArduinoBLE.h>
 
-//#define FELICITA_ARC
-#define ACAIA
-
 
 byte IDENTIFY[20]             = { 0xef, 0xdd, 0x0b, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x9a, 0x6d};
 byte HEARTBEAT[7]             = { 0xef, 0xdd, 0x00, 0x02, 0x00, 0x02, 0x00 };
@@ -27,7 +24,7 @@ AcaiaArduinoBLE::AcaiaArduinoBLE(){
     _connected = false;
 }
 
-bool AcaiaArduinoBLE::init(String mac){
+bool AcaiaArduinoBLE::init(String typeID, String mac){
     if (!BLE.begin()) {
         Serial.println("Failed to enable BLE!");
         return false;
@@ -43,7 +40,7 @@ bool AcaiaArduinoBLE::init(String mac){
     
     do{
         BLEDevice peripheral = BLE.available();
-        if (peripheral && isAcaiaName(peripheral.localName())) {
+        if (peripheral && (typeID == "FELICITA_ARC" ? isFelicitaName(peripheral.localName()) : isAcaiaName(peripheral.localName()))) {
             BLE.stopScan();
 
             Serial.println("Connecting ...");
@@ -124,7 +121,11 @@ bool AcaiaArduinoBLE::init(String mac){
 }
 
 bool AcaiaArduinoBLE::tare(){
-    if(_write.writeValue(( _type == OLD || NEW ? TARE_ACAIA  : TARE_FELICITA), 20)){
+    if(_write.writeValue(( _type == OLD || NEW ? TARE_ACAIA  : TARE_FELICITA), ( _type == OLD || NEW ? 20 : 1))){
+          if(_type == FELICITA){
+          delay(20);
+          _write.writeValue((TARE_FELICITA),1);          
+          }          
           Serial.println("tare write successful");
           return true;
     }else{
@@ -195,7 +196,7 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
         return false;
     }
 }
-#ifdef ACAIA
+
 bool AcaiaArduinoBLE::isAcaiaName(String name){
     String nameShort = name.substring(0,5);
 
@@ -205,11 +206,9 @@ bool AcaiaArduinoBLE::isAcaiaName(String name){
         || nameShort == "LUNAR"
         || nameShort == "PROCH";
 }
-#endif
-#ifdef FELICITA_ARC
-bool AcaiaArduinoBLE::isAcaiaName(String name){
+
+bool AcaiaArduinoBLE::isFelicitaName(String name){
     String nameShort = name.substring(0,8);
     Serial.println("FELICITA");
     return nameShort == "FELICITA";
 }
-#endif
