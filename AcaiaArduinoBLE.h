@@ -34,7 +34,7 @@ enum scale_type{
 class AcaiaArduinoBLE{
     public:
         AcaiaArduinoBLE();
-        bool init(String = "");
+        bool init(String = "", String = "");
         bool tare();
         bool heartbeat();
         float getWeight();
@@ -43,6 +43,7 @@ class AcaiaArduinoBLE{
         bool newWeightAvailable();
     private:
         bool isAcaiaName(String);
+        bool isFelicitaName(String);
         float               _currentWeight;
         BLECharacteristic   _write;
         BLECharacteristic   _read;
