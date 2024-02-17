@@ -17,11 +17,21 @@
 
 #include <AcaiaArduinoBLE.h>
 
-#define MAX_OFFSET 5          // In case an error in brewing occured
+#define MAX_OFFSET 5                // In case an error in brewing occured
+#define MIN_SHOT_DURATION_MS 3000   //Useful for flushing the group.
+                                    // This ensure that the system will ignore
+                                    // "shots" that last less than this duration
+#define MAX_SHOT_DURATION_MS 50000  //Primarily useful for latching switches, since user
+                                    // looses control of the paddle once the system
+                                    // latches.
+#define BUTTON_READ_PERIOD_MS 25
 
 //User defined***
 #define END_WEIGHT 50         //Goal Weight
-float weightOffset = -1.5;    //Weight to stop shot. 
+#define MOMENTARY true        //Define brew switch style. 
+                              // True for momentary switches such as GS3 AV, Silvia Pro
+                              // false for latching switches such as Linea Mini/Micra
+float weightOffset = -1.5;    //Weight to stop shot.  
                               // Will change during runtime in 
                               // response to observed error
 //***************
@@ -33,10 +43,10 @@ float error = 0;
 // button 
 int in = 10;
 int out = 11;
-bool buttonPressed = false;
-unsigned long lastButtonRead = 0;
-unsigned long buttonReadPeriod_ms = 25;
-int lastButtonState = 1;
+bool buttonPressed = false; //physical status of button
+bool buttonLatched = false; //electrical status of button
+unsigned long lastButtonRead_ms = 0;
+int newButtonState = 0;
 
 bool brewing = false;
 unsigned long shotStart_ms = 0;
@@ -70,31 +80,54 @@ void loop() {
   // otherwise getWeight() will return stale data
   if(acaia.newWeightAvailable()){
     currentWeight = acaia.getWeight();
-    Serial.println(acaia.getWeight());
+    Serial.println(currentWeight);
   }
 
-  // Read button every ButtonReadPeriod_ms
-  if(millis() > (lastButtonRead + buttonReadPeriod_ms) ){
-    lastButtonRead = millis();
-    lastButtonState = digitalRead(in);
-
-    //button pressed
-    if( !lastButtonState && buttonPressed == false ){
-      Serial.println("ButtonPressed");
-      buttonPressed = true;
+  // Read button every period
+  if(millis() > (lastButtonRead_ms + BUTTON_READ_PERIOD_MS) ){
+    lastButtonRead_ms = millis();
+    newButtonState = !digitalRead(in); //Active Low
+  }
+  
+  //button just  pressed
+  if(newButtonState && buttonPressed == false ){
+    Serial.println("ButtonPressed");
+    buttonPressed = true;
+    if(!MOMENTARY){
+      brewing = true;
+      setBrewingState(brewing);
     }
+  }
+    
+  // button held. Take over for the rest of the shot.
+  else if(!MOMENTARY 
+  && brewing 
+  && !buttonLatched 
+  && millis() > (shotStart_ms + MIN_SHOT_DURATION_MS) 
+  ){
+    buttonLatched = true;
+    Serial.println("Button Latched");
+    digitalWrite(out,HIGH); Serial.println("wrote high");
+    // Get the acaia to beep to inform user.
+    acaia.tare();
+  }
 
-    //button released
-    else if(lastButtonState &&  buttonPressed == true ){
-      Serial.println("ButtonReleased");
-      buttonPressed = false;
-      brewing = !brewing;
-      if(brewing){
-        Serial.println("shot started");
-        shotStart_ms = millis();
-        acaia.tare();
-      }
-    }
+  //button released
+  else if(!buttonLatched 
+  && !newButtonState 
+  && buttonPressed == true 
+  ){
+    Serial.println("Button Released");
+    buttonPressed = false;
+    brewing = !brewing;
+    setBrewingState(brewing);
+  }
+    
+  //Max duration reached
+  else if(brewing && millis() > (shotStart_ms + MAX_SHOT_DURATION_MS) ){
+    brewing = false;
+    Serial.println("Max brew duration reached");
+    setBrewingState(brewing);
   }
 
   //Blink LED while brewing
@@ -107,14 +140,12 @@ void loop() {
   //End shot
   if(brewing 
   && currentWeight >= (END_WEIGHT + weightOffset)
-  && millis() > (shotStart_ms + 3000) 
+  && millis() > (shotStart_ms + MIN_SHOT_DURATION_MS) 
   ){
+    Serial.println("weight achieved");
     brewing = false;
-    Serial.println("ShotEnded");
-    shotEnd_ms = millis();
-    digitalWrite(out,HIGH);
-    delay(300);
-    digitalWrite(out,LOW);
+    
+    setBrewingState(brewing); 
   }
 
   //Detect error of shot
@@ -143,4 +174,27 @@ void loop() {
     Serial.println();
 
   }
+}
+
+void setBrewingState(bool brewing){
+  if(brewing){
+    Serial.println("shot started");
+    shotStart_ms = millis();
+    acaia.tare();
+    
+  }else{
+    Serial.println("ShotEnded");
+    shotEnd_ms = millis();
+    if(MOMENTARY){
+      //Pulse button to stop brewing
+      digitalWrite(out,HIGH);Serial.println("wrote high");
+      delay(300);
+      digitalWrite(out,LOW);Serial.println("wrote low");
+    }else{
+      buttonLatched = false;
+      buttonPressed = false;
+      Serial.println("Button Unlatched and not pressed");
+      digitalWrite(out,LOW); Serial.println("wrote low");
+    }
+  } 
 }
