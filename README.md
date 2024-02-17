@@ -5,6 +5,7 @@ This is an Arduino Library which can be found in the Arduino IDE Library Manager
 Tested on:
 * Arduino Nano ESP32, Nano 33 IoT
 * Acaia Pyxis, Acaia Lunar Pre-2021, Acaia Lunar 2021
+* La Marzocco Linea Mini, La Marzocco GS3, Rancilio Silvia Pro
 
 ...using Arduino IDE 2.3.0 and ArduinoBLE 1.3.6
 
@@ -20,6 +21,10 @@ The included "shotStopper" example code uses the ShotStopper PCB to make it simp
 
 END_WEIGHT
 * Goal weight of espresso
+
+MOMENTARY
+* true for momentary switches such as GS3 AV, Rancilio Silvia Pro, Breville, etc.
+* false for latching switches such as Linea Mini/Micra, etc.
 
 weightOffset:
 * Changes the default value at which the machine will stop the shot ( END_WEIGHT + weightOffset )
@@ -53,7 +58,7 @@ Firmware:
 
 ☑ Positive *and* negative weight support
 
-⬜ Latching-switch support (LM Mini, LM Micra, etc)
+☑ Latching-switch support (LM Mini, LM Micra, etc)
 
 ⬜ Auto-reconnect
 
@@ -73,7 +78,7 @@ Hardware:
 
 ☑ 3D-Printed Half Case
 
-⬜ Compatibility with La Marzocco Mini/Micra (in progress)
+☑ Compatibility with La Marzocco Mini/Micra (in progress)
 
 ⬜ Compatibility with Breville (presumed but untested)
 
@@ -83,7 +88,7 @@ Sales:
 
 ☑ Beta Users Determined
 
-⬜ Beta Units Built
+☑ Beta Units Built
 
 ⬜ Beta Units Shipped
 
