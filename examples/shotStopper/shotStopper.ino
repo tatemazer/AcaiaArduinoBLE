@@ -61,7 +61,13 @@ void setup() {
   pinMode(in, INPUT_PULLUP);
   pinMode(out, OUTPUT);
 
-  acaia.init(); 
+  // Uncomment any of the following lines to connect to your scale, optionally add your Mac Address as an argument:
+
+  //acaia.init("ACAIA","##:##:##:##:##:##");
+  //acaia.init("FELICITA_ARC","##:##:##:##:##:##");
+  acaia.init("FELICITA_ARC");
+  //acaia.init("ACAIA");
+  
 }
 
 void loop() {
