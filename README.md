@@ -7,7 +7,7 @@ Tested on:
 * Acaia Pyxis, Acaia Lunar Pre-2021, Acaia Lunar 2021, Felicita Arc
 * La Marzocco Linea Mini, La Marzocco GS3, Rancilio Silvia Pro
 
-...using Arduino IDE 2.3.0 and ArduinoBLE 1.3.6
+...using Arduino IDE 2.3.1 and ArduinoBLE 1.3.6
 
 
 ## Requirements
@@ -61,7 +61,7 @@ Firmware:
 
 ☑ Latching-switch support (LM Mini, LM Micra, etc)
 
-⬜ Auto-reconnect
+☑ Auto-reconnect
 
 ⬜ Improve Tare Command Reliability
 
@@ -111,7 +111,6 @@ Sales:
 ## Bugs/Missing
 1. Tare command is less reliable than pressing the tare button.
 2. Only supports grams.
-3. Reconnection is unreliable. Power Cycle is best.
 
 # Acknowledgement
 This is largely a basic port of the  [LunarGateway](https://github.com/frowin/LunarGateway/) library written for the ESP32.

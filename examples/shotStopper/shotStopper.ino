@@ -60,11 +60,13 @@ void setup() {
   // make the pushbutton's pin an input:
   pinMode(in, INPUT_PULLUP);
   pinMode(out, OUTPUT);
-
-  acaia.init(); 
 }
 
 void loop() {
+
+  while(!acaia.isConnected()){
+    acaia.init(); 
+  }
 
   // Send a heartbeat message to the acaia periodically to maintain connection
   if(acaia.heartbeatRequired()){
