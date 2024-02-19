@@ -22,9 +22,6 @@ The included "shotStopper" example code uses the ShotStopper PCB to make it simp
 
 The following variables at the top of the shotStopper.ino file can be configured by the user:
 
-`endWeight`
-* Goal weight of espresso
-
 `MOMENTARY`
 * true for momentary switches such as GS3 AV, Rancilio Silvia Pro, Breville, etc.
 * false for latching switches such as Linea Mini/Micra, etc.
@@ -67,7 +64,7 @@ Firmware:
 
 ☑ change setpoint over bluetooth
 
-⬜ maintain setpoint after powercycle
+☑ maintain setpoint after powercycle
 
 ⬜ Improve Tare Command Reliability
 

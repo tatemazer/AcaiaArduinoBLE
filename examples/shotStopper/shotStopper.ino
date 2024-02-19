@@ -16,6 +16,7 @@
 */
 
 #include <AcaiaArduinoBLE.h>
+#include <EEPROM.h>
 
 #define MAX_OFFSET 5                // In case an error in brewing occured
 #define MIN_SHOT_DURATION_MS 3000   //Useful for flushing the group.
@@ -26,11 +27,14 @@
                                     // latches.
 #define BUTTON_READ_PERIOD_MS 30
 
+#define EEPROM_SIZE 1  // This is 1-Byte
+#define WEIGHT_ADDR 0  // Use the first byte of EEPROM to store the goal weight
+
 //User defined***
 #define MOMENTARY true        //Define brew switch style. 
                               // True for momentary switches such as GS3 AV, Silvia Pro
                               // false for latching switches such as Linea Mini/Micra
-uint16_t goalWeight = 36;      //Goal Weight
+
 float weightOffset = -1.5;    //Weight to stop shot.  
                               // Will change during runtime in 
                               // response to observed error
@@ -38,8 +42,9 @@ float weightOffset = -1.5;    //Weight to stop shot.
 
 AcaiaArduinoBLE scale;
 float currentWeight = 0;
+uint8_t goalWeight = 0;      // Goal Weight to be read from EEPROM
 float error = 0;
-int buttonArr[4];
+int buttonArr[4];            // last 4 readings of the button
 
 // button 
 int in = 10;
@@ -59,7 +64,13 @@ BLEByteCharacteristic weightCharacteristic("0x2A98",  BLEWrite | BLERead);
 
 void setup() {
   Serial.begin(9600);
+  EEPROM.begin(EEPROM_SIZE);
 
+  // Get stored setpoint
+  goalWeight = EEPROM.read(WEIGHT_ADDR);
+  Serial.print("Goal Weight retrieved: ");
+  Serial.println(goalWeight);
+  
   // initialize the GPIO hardware
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(in, INPUT_PULLUP);
@@ -91,6 +102,8 @@ void loop() {
     Serial.print(" to ");
     goalWeight = weightCharacteristic.value();
     Serial.println(goalWeight);
+    EEPROM.write(WEIGHT_ADDR, goalWeight); //1 byte, 0-255
+    EEPROM.commit();
   }
 
   // Send a heartbeat message to the scale periodically to maintain connection
