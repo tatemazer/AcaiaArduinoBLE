@@ -27,7 +27,7 @@
 #define BUTTON_READ_PERIOD_MS 25
 
 //User defined***
-#define END_WEIGHT 50         //Goal Weight
+#define END_WEIGHT 36         //Goal Weight
 #define MOMENTARY true        //Define brew switch style. 
                               // True for momentary switches such as GS3 AV, Silvia Pro
                               // false for latching switches such as Linea Mini/Micra
@@ -36,7 +36,7 @@ float weightOffset = -1.5;    //Weight to stop shot.
                               // response to observed error
 //***************
 
-AcaiaArduinoBLE acaia;
+AcaiaArduinoBLE scale;
 float currentWeight = 0;
 float error = 0;
 
@@ -64,24 +64,24 @@ void setup() {
 
 void loop() {
 
-  while(!acaia.isConnected()){
-    acaia.init(); 
+  while(!scale.isConnected()){
+    scale.init(); 
   }
 
-  // Send a heartbeat message to the acaia periodically to maintain connection
-  if(acaia.heartbeatRequired()){
-    acaia.heartbeat();
+  // Send a heartbeat message to the scale periodically to maintain connection
+  if(scale.heartbeatRequired()){
+    scale.heartbeat();
   }
 
   // Reset local weight value in case disconnected. 
-  if(!acaia.isConnected()){
+  if(!scale.isConnected()){
     currentWeight = 0;
   }
 
   // always call newWeightAvailable to actually receive the datapoint from the scale,
   // otherwise getWeight() will return stale data
-  if(acaia.newWeightAvailable()){
-    currentWeight = acaia.getWeight();
+  if(scale.newWeightAvailable()){
+    currentWeight = scale.getWeight();
     Serial.println(currentWeight);
   }
 
@@ -110,8 +110,8 @@ void loop() {
     buttonLatched = true;
     Serial.println("Button Latched");
     digitalWrite(out,HIGH); Serial.println("wrote high");
-    // Get the acaia to beep to inform user.
-    acaia.tare();
+    // Get the scale to beep to inform user.
+    scale.tare();
   }
 
   //button released
@@ -182,7 +182,7 @@ void setBrewingState(bool brewing){
   if(brewing){
     Serial.println("shot started");
     shotStart_ms = millis();
-    acaia.tare();
+    scale.tare();
     
   }else{
     Serial.println("ShotEnded");

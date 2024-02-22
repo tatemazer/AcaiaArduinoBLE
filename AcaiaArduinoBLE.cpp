@@ -3,24 +3,19 @@
   an Acaia Scale using the ArduinoBLE library.
   Created by Tate Mazer, December 13, 2023.
   Released into the public domain.
-#Starting with V 1.20 WIP:
-Adding Felicita Arc Support, Pio Baettig
-  
+
+  Adding Generic Scale Support, Pio Baettig
 */
 #include "Arduino.h"
 #include "AcaiaArduinoBLE.h"
 #include <ArduinoBLE.h>
 
-//#define FELICITA_ARC
-#define ACAIA
+byte IDENTIFY[20]               = { 0xef, 0xdd, 0x0b, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x9a, 0x6d };
+byte HEARTBEAT[7]               = { 0xef, 0xdd, 0x00, 0x02, 0x00, 0x02, 0x00 };
+byte NOTIFICATION_REQUEST[14]   = { 0xef, 0xdd, 0x0c, 0x09, 0x00, 0x01, 0x01, 0x02, 0x02, 0x05, 0x03, 0x04, 0x15, 0x06 };
 
-
-byte IDENTIFY[20]             = { 0xef, 0xdd, 0x0b, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x9a, 0x6d};
-byte HEARTBEAT[7]             = { 0xef, 0xdd, 0x00, 0x02, 0x00, 0x02, 0x00 };
-byte NOTIFICATION_REQUEST[14] = { 0xef, 0xdd, 0x0c, 0x09, 0x00, 0x01, 0x01, 0x02, 0x02, 0x05, 0x03, 0x04, 0x15, 0x06 };
-
-byte TARE_ACAIA[6]                  = { 0xef, 0xdd, 0x04, 0x00, 0x00, 0x00};
-byte TARE_FELICITA[1]= {0x54};
+byte TARE_ACAIA[6]              = { 0xef, 0xdd, 0x04, 0x00, 0x00, 0x00 };
+byte TARE_GENERIC[1]            = { 0x54 };
 
 AcaiaArduinoBLE::AcaiaArduinoBLE(){
     _currentWeight = 0;
@@ -43,7 +38,7 @@ bool AcaiaArduinoBLE::init(String mac){
     
     do{
         BLEDevice peripheral = BLE.available();
-        if (peripheral && isAcaiaName(peripheral.localName())) {
+        if (peripheral && isScaleName(peripheral.localName())) {
             BLE.stopScan();
 
             Serial.println("Connecting ...");
@@ -56,41 +51,34 @@ bool AcaiaArduinoBLE::init(String mac){
 
             Serial.println("Discovering attributes ...");
             if (peripheral.discoverAttributes()) {
-                Serial.println("Attributes discovered");
-		Serial.println(peripheral.discoverAttributes());
-		Serial.println(peripheral.advertisedServiceUuid());
+                Serial.println("Attributes discovered");;
             } else {
                 Serial.println("Attribute discovery failed!");
                 peripheral.disconnect();
                 return false;
             }
 
+            // Determine type of scale
             if(peripheral.characteristic(READ_CHAR_OLD_VERSION).canSubscribe()){
                 Serial.println("Old version Acaia Detected");
-                _type = OLD;
-                _write =peripheral.characteristic(WRITE_CHAR_OLD_VERSION);
-                _read =peripheral.characteristic(READ_CHAR_OLD_VERSION);
-
+                _type   = OLD;
+                _write  = peripheral.characteristic(WRITE_CHAR_OLD_VERSION);
+                _read   = peripheral.characteristic(READ_CHAR_OLD_VERSION);
             }else if(peripheral.characteristic(READ_CHAR_NEW_VERSION).canSubscribe()){
                 Serial.println("New version Acaia Detected");
-                _type = NEW;
-                _write =peripheral.characteristic(WRITE_CHAR_NEW_VERSION);
-                _read =peripheral.characteristic(READ_CHAR_NEW_VERSION);
-
-            } else if(peripheral.characteristic(READ_CHAR_FELICITA).canSubscribe()){
-                Serial.println("Felicita Arc Detected");
-                _type = FELICITA;
-	    _write = peripheral.characteristic(WRITE_CHAR_FELICITA);
-	    _read = peripheral.characteristic(READ_CHAR_FELICITA);
-
+                _type   = NEW;
+                _write  = peripheral.characteristic(WRITE_CHAR_NEW_VERSION);
+                _read   = peripheral.characteristic(READ_CHAR_NEW_VERSION);
+            } else if(peripheral.characteristic(READ_CHAR_GENERIC).canSubscribe()){
+                Serial.println("Generic Scale Detected");
+                _type   = GENERIC;
+	            _write  = peripheral.characteristic(WRITE_CHAR_GENERIC);
+	            _read   = peripheral.characteristic(READ_CHAR_GENERIC);
             }
             else{
-                Serial.println("unable to subscribe to READ");
+                Serial.println("unable to determine scale type");
                 return false;
             }
-
-//            _write = peripheral.characteristic(_type == OLD ? WRITE_CHAR_OLD_VERSION : WRITE_CHAR_NEW_VERSION);
-//            _read = peripheral.characteristic( _type == OLD ? READ_CHAR_OLD_VERSION  : READ_CHAR_NEW_VERSION );
 
             if(!_read.canSubscribe()){
                 Serial.println("unable to subscribe to READ");
@@ -119,12 +107,12 @@ bool AcaiaArduinoBLE::init(String mac){
         }
     }while(millis() < 10000);
 
-    Serial.println("failed to find Acaia or Felicita Device");
+    Serial.println("failed to find scale");
     return false;    
 }
 
 bool AcaiaArduinoBLE::tare(){
-    if(_write.writeValue(( _type == OLD || NEW ? TARE_ACAIA  : TARE_FELICITA), 20)){
+    if(_write.writeValue(( _type == OLD || NEW ? TARE_ACAIA  : TARE_GENERIC), 20)){
           Serial.println("tare write successful");
           return true;
     }else{
@@ -184,32 +172,33 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
                         / pow(10, input[6]) 
                         * ((input[7] & 0x02) ? -1 : 1);
         return true;
-    }else if(FELICITA == _type 
+    }else if(GENERIC == _type 
       && _read.valueUpdated() 
-     // && _read.valueLength() == 13 
       && _read.readValue(input,13) 
       ){
-	_currentWeight = ( input[2] == 0x2B ? 1  : -1 )*((input[3] -0x30)*1000 + (input[4] -0x30)*100 + (input[5] -0x30)*10 + (input[6] -0x30)*1 + (input[7] -0x30)*0.1 + (input[8] -0x30)*0.01);
+        //Grab weight bytes (3-8),
+        // get sign byte (2)
+	    _currentWeight = ( input[2] == 0x2B ? 1  : -1 )
+        *(
+          (input[3] -0x30)*1000 
+        + (input[4] -0x30)*100 
+        + (input[5] -0x30)*10 
+        + (input[6] -0x30)*1 
+        + (input[7] -0x30)*0.1 
+        + (input[8] -0x30)*0.01
+        );
         return true;
     }else{
         return false;
     }
 }
-#ifdef ACAIA
-bool AcaiaArduinoBLE::isAcaiaName(String name){
+bool AcaiaArduinoBLE::isScaleName(String name){
     String nameShort = name.substring(0,5);
 
     return nameShort == "CINCO"
         || nameShort == "ACAIA"
         || nameShort == "PYXIS"
         || nameShort == "LUNAR"
-        || nameShort == "PROCH";
+        || nameShort == "PROCH"
+        || nameShort == "FELIC";
 }
-#endif
-#ifdef FELICITA_ARC
-bool AcaiaArduinoBLE::isAcaiaName(String name){
-    String nameShort = name.substring(0,8);
-    Serial.println("FELICITA");
-    return nameShort == "FELICITA";
-}
-#endif
