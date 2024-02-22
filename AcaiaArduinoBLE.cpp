@@ -112,7 +112,7 @@ bool AcaiaArduinoBLE::init(String mac){
 }
 
 bool AcaiaArduinoBLE::tare(){
-    if(_write.writeValue(( _type == OLD || NEW ? TARE_ACAIA  : TARE_GENERIC), 20)){
+    if(_write.writeValue((_type == GENERIC ? TARE_GENERIC : TARE_ACAIA), 20)){
           Serial.println("tare write successful");
           return true;
     }else{
