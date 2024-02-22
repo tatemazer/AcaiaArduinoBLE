@@ -20,6 +20,6 @@ void loop() {
   // always call newWeightAvailable to actually receive the datapoint from the scale,
   // otherwise getWeight() will return stale data
   if (scale.newWeightAvailable()) {
-    scale.println(scale.getWeight());
+    Serial.println(scale.getWeight());
   }
 }
