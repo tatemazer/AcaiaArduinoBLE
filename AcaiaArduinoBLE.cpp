@@ -23,6 +23,7 @@ AcaiaArduinoBLE::AcaiaArduinoBLE(){
 }
 
 bool AcaiaArduinoBLE::init(String mac){
+    unsigned long start = millis();
     if (!BLE.begin()) {
         Serial.println("Failed to enable BLE!");
         return false;
@@ -105,7 +106,7 @@ bool AcaiaArduinoBLE::init(String mac){
             _connected = true;
             return true;
         }
-    }while(millis() < 10000);
+    }while(millis() - start < 10000);
 
     Serial.println("failed to find scale");
     return false;    

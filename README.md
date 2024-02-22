@@ -88,6 +88,8 @@ Hardware:
 
 ❌ Compatibility with La Marzocco Linea Classic S (Not Compatible, requires investigation)
 
+❌ Compatibility with Stone Espresso (Not Compatible, not enough current across optocoupler)
+
 ☑ 3D-Printed Half Case
 
 ☑ Compatibility with La Marzocco Mini/Micra (in progress)
