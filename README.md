@@ -104,7 +104,7 @@ Sales:
 
 ☑ Beta Units Built
 
-⬜ Beta Units Shipped
+☑ Beta Units Shipped (2/22/24)
 
 ⬜ Beta Test Complete
 
