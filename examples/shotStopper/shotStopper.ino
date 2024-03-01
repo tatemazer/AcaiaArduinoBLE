@@ -24,7 +24,7 @@
 #define MAX_SHOT_DURATION_MS 50000  //Primarily useful for latching switches, since user
                                     // looses control of the paddle once the system
                                     // latches.
-#define BUTTON_READ_PERIOD_MS 25
+#define BUTTON_READ_PERIOD_MS 30
 
 //User defined***
 #define END_WEIGHT 36         //Goal Weight
@@ -39,6 +39,7 @@ float weightOffset = -1.5;    //Weight to stop shot.
 AcaiaArduinoBLE scale;
 float currentWeight = 0;
 float error = 0;
+int buttonArr[4];
 
 // button 
 int in = 10;
@@ -88,7 +89,23 @@ void loop() {
   // Read button every period
   if(millis() > (lastButtonRead_ms + BUTTON_READ_PERIOD_MS) ){
     lastButtonRead_ms = millis();
-    newButtonState = !digitalRead(in); //Active Low
+
+    //push back for new entry
+    for(int i = 2;i>=0;i--){
+      buttonArr[i+1] = buttonArr[i];
+    }
+    buttonArr[0] = !digitalRead(in); //Active Low
+
+    //only return 1 if contains 1
+    newButtonState = false;
+    for(int i=0;i<4;i++){
+      if(buttonArr[i]){
+        newButtonState = true;
+        
+      }
+      //Serial.print(buttonArr[i]);
+    }
+    //Serial.println();
   }
   
   //button just  pressed
