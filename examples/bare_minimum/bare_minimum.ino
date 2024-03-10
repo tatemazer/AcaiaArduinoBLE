@@ -9,6 +9,9 @@ void setup() {
   scale.init();
   scale.tare();
   scale.tare();
+
+  // initialize the Bluetooth® Low Energy hardware
+  BLE.begin();
 }
 
 void loop() {

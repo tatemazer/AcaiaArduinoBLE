@@ -24,10 +24,6 @@ AcaiaArduinoBLE::AcaiaArduinoBLE(){
 
 bool AcaiaArduinoBLE::init(String mac){
     unsigned long start = millis();
-    if (!BLE.begin()) {
-        Serial.println("Failed to enable BLE!");
-        return false;
-    }
 
     if (mac == ""){
         BLE.scan();

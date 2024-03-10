@@ -61,6 +61,9 @@ void setup() {
   // make the pushbutton's pin an input:
   pinMode(in, INPUT_PULLUP);
   pinMode(out, OUTPUT);
+
+  // initialize the Bluetooth® Low Energy hardware
+  BLE.begin();
 }
 
 void loop() {
