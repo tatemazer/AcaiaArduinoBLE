@@ -27,10 +27,10 @@
 #define BUTTON_READ_PERIOD_MS 30
 
 //User defined***
-#define END_WEIGHT 36         //Goal Weight
 #define MOMENTARY true        //Define brew switch style. 
                               // True for momentary switches such as GS3 AV, Silvia Pro
                               // false for latching switches such as Linea Mini/Micra
+uint16_t goalWeight = 36;      //Goal Weight
 float weightOffset = -1.5;    //Weight to stop shot.  
                               // Will change during runtime in 
                               // response to observed error
@@ -53,23 +53,44 @@ bool brewing = false;
 unsigned long shotStart_ms = 0;
 unsigned long shotEnd_ms = 0;
 
+//BLE peripheral device
+BLEService weightService("00002a98-0000-1000-8000-00805f9b34fb"); // create service
+BLEByteCharacteristic weightCharacteristic("0x2A98",  BLEWrite | BLERead);
+
 void setup() {
   Serial.begin(9600);
 
+  // initialize the GPIO hardware
   pinMode(LED_BUILTIN, OUTPUT);
-
-  // make the pushbutton's pin an input:
   pinMode(in, INPUT_PULLUP);
   pinMode(out, OUTPUT);
 
-  // initialize the Bluetooth® Low Energy hardware
+  // initialize the BLE hardware
   BLE.begin();
+  BLE.setLocalName("shotStopper");
+  BLE.setAdvertisedService(weightService);
+  weightService.addCharacteristic(weightCharacteristic);
+  BLE.addService(weightService);
+  weightCharacteristic.writeValue(goalWeight);
+  BLE.advertise();
+  Serial.println("Bluetooth® device active, waiting for connections...");
 }
 
 void loop() {
 
+  // Connect to scale
   while(!scale.isConnected()){
     scale.init(); 
+  }
+
+  // Check for setpoint updates
+  BLE.poll();
+  if (weightCharacteristic.written()) {
+    Serial.print("goal weight updated from ");
+    Serial.print(goalWeight);
+    Serial.print(" to ");
+    goalWeight = weightCharacteristic.value();
+    Serial.println(goalWeight);
   }
 
   // Send a heartbeat message to the scale periodically to maintain connection
@@ -161,7 +182,7 @@ void loop() {
 
   //End shot
   if(brewing 
-  && currentWeight >= (END_WEIGHT + weightOffset)
+  && currentWeight >= (goalWeight + weightOffset)
   && millis() > (shotStart_ms + MIN_SHOT_DURATION_MS) 
   ){
     Serial.println("weight achieved");
@@ -173,7 +194,7 @@ void loop() {
   //Detect error of shot
   if(shotStart_ms 
   && shotEnd_ms 
-  && currentWeight >= (END_WEIGHT + weightOffset)
+  && currentWeight >= (goalWeight + weightOffset)
   && millis() > (shotEnd_ms + 3000) ){
     shotStart_ms = 0;
     shotEnd_ms = 0;
@@ -181,16 +202,16 @@ void loop() {
     Serial.print("I detected a final weight of ");
     Serial.print(currentWeight);
     Serial.print("g. The goal was ");
-    Serial.print(END_WEIGHT);
+    Serial.print(goalWeight);
     Serial.print("g with an offset of ");
     Serial.print(weightOffset);
 
-    if( abs(END_WEIGHT - currentWeight) > MAX_OFFSET ){
+    if( abs(goalWeight - currentWeight) > MAX_OFFSET ){
       Serial.print("g. Error assumed. Offset unchanged. ");
     }
     else{
       Serial.print("g. Next time I'll create an offset of ");
-      weightOffset += END_WEIGHT - currentWeight;
+      weightOffset += goalWeight - currentWeight;
       Serial.print(weightOffset);
     }
     Serial.println();
