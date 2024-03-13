@@ -7,7 +7,7 @@ Tested on:
 * Acaia Pyxis, Acaia Lunar Pre-2021, Acaia Lunar 2021, Felicita Arc
 * La Marzocco Linea Mini, La Marzocco GS3, Rancilio Silvia Pro
 
-...using Arduino IDE 2.3.1 and ArduinoBLE 1.3.6
+...using Arduino IDE 2.3.2 and ArduinoBLE 1.3.6
 
 
 ## Requirements
@@ -20,14 +20,16 @@ The included "shotStopper" example code uses the ShotStopper PCB to make it simp
 
 ## ShotStopper Example Code Configuration
 
-END_WEIGHT
+The following variables at the top of the shotStopper.ino file can be configured by the user:
+
+`endWeight`
 * Goal weight of espresso
 
-MOMENTARY
+`MOMENTARY`
 * true for momentary switches such as GS3 AV, Rancilio Silvia Pro, Breville, etc.
 * false for latching switches such as Linea Mini/Micra, etc.
 
-weightOffset:
+`weightOffset`
 * Changes the default value at which the machine will stop the shot ( END_WEIGHT + weightOffset )
 * Will change as the machine pulls repeated shots to increase precision
 * Reset upon power cycle
@@ -63,9 +65,13 @@ Firmware:
 
 ☑ Auto-reconnect
 
+☑ change setpoint over bluetooth
+
+⬜ maintain setpoint after powercycle
+
 ⬜ Improve Tare Command Reliability
 
-⬜ Investigate method to change setpoint (bluetooth?)
+
 
 Scale Compatibility:
 
