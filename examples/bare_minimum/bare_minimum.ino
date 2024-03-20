@@ -5,13 +5,13 @@ void setup() {
   Serial.begin(115200);
   while (!Serial) {}
   Serial.println("Scale Interface test");
+
+  // initialize the Bluetooth® Low Energy hardware
+  BLE.begin();
   // Optionally add your Mac Address as an argument: acaia.init("##:##:##:##:##:##");
   scale.init();
   scale.tare();
   scale.tare();
-
-  // initialize the Bluetooth® Low Energy hardware
-  BLE.begin();
 }
 
 void loop() {

@@ -3,9 +3,15 @@
 
   Immediately Connects to a nearby acaia scale, 
   tare's the scale when the "in" gpio is triggered (active low),
-  and then triggers the "out" gpio to stop the shot once ( END_WEIGHT - WEIGHT OFFSET ) is achieved.
+  and then triggers the "out" gpio to stop the shot once ( goalWeight - weightOffset ) is achieved.
 
-  Tested on a Acaia Pyxis, Arduino nano ESP32, and La Marzocco GS3
+  Tested on a Acaia Pyxis, Arduino nano ESP32, and La Marzocco GS3. 
+
+  Note that only the EEPROM library only supports ESP32-based controllers.
+
+  To set the Weight over BLE, use a BLE app such as LightBlue to connect
+  to the "shotStopper" BLE device and read/write to the weight characteristic,
+  otherwise the weight is defaulted to 36g.
 
   Created by Tate Mazer, 2023.
 
@@ -70,6 +76,14 @@ void setup() {
   goalWeight = EEPROM.read(WEIGHT_ADDR);
   Serial.print("Goal Weight retrieved: ");
   Serial.println(goalWeight);
+
+  //If eeprom isn't initialized and has an 
+  // unreasonable weight, default to 36g.
+  if( (goalWeight < 10) || (goalWeight > 200) ){
+    goalWeight = 36;
+    Serial.print("Goal Weight set to: ");
+    Serial.println(goalWeight);
+  }
   
   // initialize the GPIO hardware
   pinMode(LED_BUILTIN, OUTPUT);
