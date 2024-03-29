@@ -66,6 +66,10 @@ Firmware:
 
 ☑ maintain setpoint after powercycle
 
+☑ auto start/stop timer
+
+⬜ auto timer reset
+
 ⬜ Improve Tare Command Reliability
 
 
@@ -85,17 +89,23 @@ Hardware:
 
 ☑ PCB Design for Low Voltage Switches (V1.1)
 
+☑ 3D-Printed Half Case
+
 ☑ Compatibility with La Marzocco GS3 AV
 
 ☑ Compatibility with Rancilio Silvia Pro (and Pro X)
 
 ❌ Compatibility with La Marzocco Linea Classic S (Not Compatible, requires investigation)
 
-❌ Compatibility with Stone Espresso (Not Compatible, not enough current across optocoupler)
+☑ Compatibility with Stone Espresso (requires reed switch)
 
-☑ 3D-Printed Half Case
+☑ Compatibility with La Marzocco Mini
 
-☑ Compatibility with La Marzocco Mini/Micra (in progress)
+☑ Powered by espresso machine (V2.0)
+
+☑ Reed switch input (V2.0)
+
+⬜ Compatibility with La Marzocco Micra (Presumed for V2.0)
 
 ⬜ Compatibility with Breville (presumed but untested)
 

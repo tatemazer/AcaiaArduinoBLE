@@ -34,6 +34,9 @@ class AcaiaArduinoBLE{
         AcaiaArduinoBLE();
         bool init(String = "");
         bool tare();
+        bool startTimer();
+        bool stopTimer();
+        bool resetTimer();
         bool heartbeat();
         float getWeight();
         bool heartbeatRequired();

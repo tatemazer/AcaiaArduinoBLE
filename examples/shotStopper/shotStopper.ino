@@ -250,11 +250,13 @@ void setBrewingState(bool brewing){
   if(brewing){
     Serial.println("shot started");
     shotStart_ms = millis();
+    scale.startTimer();
     scale.tare();
     
   }else{
     Serial.println("ShotEnded");
     shotEnd_ms = millis();
+    scale.stopTimer();
     if(MOMENTARY){
       //Pulse button to stop brewing
       digitalWrite(out,HIGH);Serial.println("wrote high");

@@ -13,7 +13,9 @@
 byte IDENTIFY[20]               = { 0xef, 0xdd, 0x0b, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x9a, 0x6d };
 byte HEARTBEAT[7]               = { 0xef, 0xdd, 0x00, 0x02, 0x00, 0x02, 0x00 };
 byte NOTIFICATION_REQUEST[14]   = { 0xef, 0xdd, 0x0c, 0x09, 0x00, 0x01, 0x01, 0x02, 0x02, 0x05, 0x03, 0x04, 0x15, 0x06 };
-
+byte START_TIMER[7]             = { 0xef, 0xdd, 0x0d, 0x00, 0x00, 0x00, 0x00 };
+byte STOP_TIMER[7]              = { 0xef, 0xdd, 0x0d, 0x00, 0x02, 0x00, 0x02 };
+byte RESET_TIMER[7]             = { 0xef, 0xdd, 0x0d, 0x00, 0x01, 0x00, 0x01 };
 byte TARE_ACAIA[6]              = { 0xef, 0xdd, 0x04, 0x00, 0x00, 0x00 };
 byte TARE_GENERIC[1]            = { 0x54 };
 
@@ -115,6 +117,39 @@ bool AcaiaArduinoBLE::tare(){
     }else{
         _connected = false;
         Serial.println("tare write failed");
+        return false;
+    }
+}
+
+bool AcaiaArduinoBLE::startTimer(){
+    if(_write.writeValue(START_TIMER, 7)){
+          Serial.println("start timer write successful");
+          return true;
+    }else{
+        _connected = false;
+        Serial.println("start timer write failed");
+        return false;
+    }
+}
+
+bool AcaiaArduinoBLE::stopTimer(){
+    if(_write.writeValue(STOP_TIMER, 7)){
+          Serial.println("stop timer write successful");
+          return true;
+    }else{
+        _connected = false;
+        Serial.println("stop timer write failed");
+        return false;
+    }
+}
+
+bool AcaiaArduinoBLE::resetTimer(){
+    if(_write.writeValue(RESET_TIMER, 7)){
+          Serial.println("reset timer write successful");
+          return true;
+    }else{
+        _connected = false;
+        Serial.println("reset timer write failed");
         return false;
     }
 }
