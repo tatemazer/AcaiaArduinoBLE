@@ -37,7 +37,7 @@
 #define WEIGHT_ADDR 0  // Use the first byte of EEPROM to store the goal weight
 
 //User defined***
-#define MOMENTARY true        //Define brew switch style. 
+#define MOMENTARY false        //Define brew switch style. 
                               // True for momentary switches such as GS3 AV, Silvia Pro
                               // false for latching switches such as Linea Mini/Micra
 
@@ -53,10 +53,10 @@ float error = 0;
 int buttonArr[4];            // last 4 readings of the button
 
 // button 
-int in = 10;
-int out = 11;
+int in = 9;
+int out = A0;
+int outOff = A1;
 bool buttonPressed = false; //physical status of button
-bool buttonLatched = false; //electrical status of button
 unsigned long lastButtonRead_ms = 0;
 int newButtonState = 0;
 
@@ -89,6 +89,7 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(in, INPUT_PULLUP);
   pinMode(out, OUTPUT);
+  pinMode(outOff, OUTPUT);
 
   // initialize the BLE hardware
   BLE.begin();
@@ -168,23 +169,9 @@ void loop() {
       setBrewingState(brewing);
     }
   }
-    
-  // button held. Take over for the rest of the shot.
-  else if(!MOMENTARY 
-  && brewing 
-  && !buttonLatched 
-  && millis() > (shotStart_ms + MIN_SHOT_DURATION_MS) 
-  ){
-    buttonLatched = true;
-    Serial.println("Button Latched");
-    digitalWrite(out,HIGH); Serial.println("wrote high");
-    // Get the scale to beep to inform user.
-    scale.tare();
-  }
 
   //button released
-  else if(!buttonLatched 
-  && !newButtonState 
+  else if( !newButtonState 
   && buttonPressed == true 
   ){
     Serial.println("Button Released");
@@ -214,7 +201,6 @@ void loop() {
   ){
     Serial.println("weight achieved");
     brewing = false;
-    
     setBrewingState(brewing); 
   }
 
@@ -224,7 +210,7 @@ void loop() {
   && currentWeight >= (goalWeight + weightOffset)
   && millis() > (shotEnd_ms + 3000) ){
     shotStart_ms = 0;
-    shotEnd_ms = 0;
+    
 
     Serial.print("I detected a final weight of ");
     Serial.print(currentWeight);
@@ -242,7 +228,13 @@ void loop() {
       Serial.print(weightOffset);
     }
     Serial.println();
+  }
 
+  //Re-enable switch after 10 seconds
+  if(shotEnd_ms 
+  && millis() > (shotEnd_ms + 10000) ){
+    shotEnd_ms = 0;
+    digitalWrite(outOff,LOW);
   }
 }
 
@@ -263,10 +255,9 @@ void setBrewingState(bool brewing){
       delay(300);
       digitalWrite(out,LOW);Serial.println("wrote low");
     }else{
-      buttonLatched = false;
       buttonPressed = false;
       Serial.println("Button Unlatched and not pressed");
-      digitalWrite(out,LOW); Serial.println("wrote low");
+      digitalWrite(outOff,HIGH); Serial.println("activated relay");
     }
   } 
 }
