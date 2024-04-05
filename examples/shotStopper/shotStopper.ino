@@ -37,9 +37,11 @@
 #define WEIGHT_ADDR 0  // Use the first byte of EEPROM to store the goal weight
 
 //User defined***
-#define MOMENTARY true        //Define brew switch style. 
+#define MOMENTARY false        //Define brew switch style. 
                               // True for momentary switches such as GS3 AV, Silvia Pro
                               // false for latching switches such as Linea Mini/Micra
+#define REEDSWITCH false      // Set to true if the brew state is being determined 
+                              //  by a reed switch attached to the brew solenoid
 
 float weightOffset = -1.5;    //Weight to stop shot.  
                               // Will change during runtime in 
@@ -53,7 +55,7 @@ float error = 0;
 int buttonArr[4];            // last 4 readings of the button
 
 // button 
-int in = 10;
+int in = REEDSWITCH ? 9 : 10;
 int out = 11;
 bool buttonPressed = false; //physical status of button
 bool buttonLatched = false; //electrical status of button

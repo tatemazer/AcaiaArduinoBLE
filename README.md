@@ -26,6 +26,9 @@ The following variables at the top of the shotStopper.ino file can be configured
 * true for momentary switches such as GS3 AV, Rancilio Silvia Pro, Breville, etc.
 * false for latching switches such as Linea Mini/Micra, etc.
 
+`REEDSWITCH`
+* true if a reed switch on the brew solenoid is being used to determine the brew state. This is typically not necessary so set to FALSE by default
+
 `weightOffset`
 * Changes the default value at which the machine will stop the shot ( END_WEIGHT + weightOffset )
 * Will change as the machine pulls repeated shots to increase precision
