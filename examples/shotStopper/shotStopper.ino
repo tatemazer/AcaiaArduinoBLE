@@ -150,18 +150,22 @@ void loop() {
     buttonArr[0] = !digitalRead(in); //Active Low
 
     //only return 1 if contains 1
-    newButtonState = false;
-    for(int i=0;i<4;i++){
-      if(buttonArr[i]){
-        newButtonState = true;
-        
+    // Also assume the button is off for a few milliseconds
+    // after the shot is done, there can be residual noise
+    // from the reed switch
+    newButtonState = 0;
+    for(int i=0; i<4; i++){
+      if(buttonArr[i] 
+        && millis() > (shotEnd_ms + 500)
+      ){
+        newButtonState = 1;        
       }
       //Serial.print(buttonArr[i]);
     }
     //Serial.println();
   }
   
-  //button just  pressed
+  //button just pressed
   if(newButtonState && buttonPressed == false ){
     Serial.println("ButtonPressed");
     buttonPressed = true;
