@@ -62,9 +62,17 @@ bool buttonLatched = false; //electrical status of button
 unsigned long lastButtonRead_ms = 0;
 int newButtonState = 0;
 
-bool brewing = false;
-unsigned long shotStart_ms = 0;
-unsigned long shotEnd_ms = 0;
+struct Shot {
+  unsigned long start_ms;
+  unsigned long end_ms;
+  float weight[1000];
+  float time[1000];
+  int datapoints;
+  bool brewing;
+};
+
+//Initialize shot
+Shot shot = {0,0,{},{},0,false};
 
 //BLE peripheral device
 BLEService weightService("00002a98-0000-1000-8000-00805f9b34fb"); // create service
@@ -156,7 +164,7 @@ void loop() {
     newButtonState = 0;
     for(int i=0; i<4; i++){
       if(buttonArr[i] 
-        && millis() > (shotEnd_ms + 500)
+        && millis() > (shot.end_ms + 500)
       ){
         newButtonState = 1;        
       }
@@ -170,16 +178,16 @@ void loop() {
     Serial.println("ButtonPressed");
     buttonPressed = true;
     if(!MOMENTARY){
-      brewing = true;
-      setBrewingState(brewing);
+      shot.brewing = true;
+      setBrewingState(shot.brewing);
     }
   }
     
   // button held. Take over for the rest of the shot.
   else if(!MOMENTARY 
-  && brewing 
+  && shot.brewing 
   && !buttonLatched 
-  && millis() > (shotStart_ms + MIN_SHOT_DURATION_MS) 
+  && millis() > (shot.start_ms + MIN_SHOT_DURATION_MS) 
   ){
     buttonLatched = true;
     Serial.println("Button Latched");
@@ -195,42 +203,42 @@ void loop() {
   ){
     Serial.println("Button Released");
     buttonPressed = false;
-    brewing = !brewing;
-    setBrewingState(brewing);
+    shot.brewing = !shot.brewing;
+    setBrewingState(shot.brewing);
   }
     
   //Max duration reached
-  else if(brewing && millis() > (shotStart_ms + MAX_SHOT_DURATION_MS) ){
-    brewing = false;
+  else if(shot.brewing && millis() > (shot.start_ms + MAX_SHOT_DURATION_MS) ){
+    shot.brewing = false;
     Serial.println("Max brew duration reached");
-    setBrewingState(brewing);
+    setBrewingState(shot.brewing);
   }
 
   //Blink LED while brewing
-  if(brewing){
+  if(shot.brewing){
     digitalWrite(LED_BUILTIN, (millis()/1000) % 2 == 0);
   }else{
     digitalWrite(LED_BUILTIN, LOW);
   }
 
   //End shot
-  if(brewing 
+  if(shot.brewing 
   && currentWeight >= (goalWeight + weightOffset)
-  && millis() > (shotStart_ms + MIN_SHOT_DURATION_MS) 
+  && millis() > (shot.start_ms + MIN_SHOT_DURATION_MS) 
   ){
     Serial.println("weight achieved");
-    brewing = false;
+    shot.brewing = false;
     
-    setBrewingState(brewing); 
+    setBrewingState(shot.brewing); 
   }
 
   //Detect error of shot
-  if(shotStart_ms 
-  && shotEnd_ms 
+  if(shot.start_ms 
+  && shot.end_ms
   && currentWeight >= (goalWeight + weightOffset)
-  && millis() > (shotEnd_ms + 3000) ){
-    shotStart_ms = 0;
-    shotEnd_ms = 0;
+  && millis() > (shot.end_ms + 3000) ){
+    shot.start_ms = 0;
+    shot.end_ms = 0;
 
     Serial.print("I detected a final weight of ");
     Serial.print(currentWeight);
@@ -255,13 +263,13 @@ void loop() {
 void setBrewingState(bool brewing){
   if(brewing){
     Serial.println("shot started");
-    shotStart_ms = millis();
+    shot.start_ms = millis();
     scale.startTimer();
     scale.tare();
     
   }else{
     Serial.println("ShotEnded");
-    shotEnd_ms = millis();
+    shot.end_ms = millis();
     scale.stopTimer();
     if(MOMENTARY){
       //Pulse button to stop brewing
