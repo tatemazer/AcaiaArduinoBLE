@@ -116,6 +116,7 @@ void loop() {
   // Connect to scale
   while(!scale.isConnected()){
     scale.init(); 
+    currentWeight = 0;
   }
 
   // Check for setpoint updates
@@ -133,11 +134,6 @@ void loop() {
   // Send a heartbeat message to the scale periodically to maintain connection
   if(scale.heartbeatRequired()){
     scale.heartbeat();
-  }
-
-  // Reset local weight value in case disconnected. 
-  if(!scale.isConnected()){
-    currentWeight = 0;
   }
 
   // always call newWeightAvailable to actually receive the datapoint from the scale,
