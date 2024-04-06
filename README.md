@@ -71,6 +71,8 @@ Firmware:
 
 ☑ auto start/stop timer
 
+☑ flowrate-based shot end-time
+
 ⬜ auto timer reset
 
 ⬜ Improve Tare Command Reliability

@@ -25,10 +25,10 @@
 #include <EEPROM.h>
 
 #define MAX_OFFSET 5                // In case an error in brewing occured
-#define MIN_SHOT_DURATION_MS 3000   //Useful for flushing the group.
+#define MIN_SHOT_DURATION_S 3       //Useful for flushing the group.
                                     // This ensure that the system will ignore
                                     // "shots" that last less than this duration
-#define MAX_SHOT_DURATION_MS 50000  //Primarily useful for latching switches, since user
+#define MAX_SHOT_DURATION_S 50      //Primarily useful for latching switches, since user
                                     // looses control of the paddle once the system
                                     // latches.
 #define BUTTON_READ_PERIOD_MS 30
@@ -36,11 +36,13 @@
 #define EEPROM_SIZE 1  // This is 1-Byte
 #define WEIGHT_ADDR 0  // Use the first byte of EEPROM to store the goal weight
 
+#define N 10                        // Number of datapoints used to calculate trend line
+
 //User defined***
 #define MOMENTARY false        //Define brew switch style. 
                               // True for momentary switches such as GS3 AV, Silvia Pro
                               // false for latching switches such as Linea Mini/Micra
-#define REEDSWITCH false      // Set to true if the brew state is being determined 
+#define REEDSWITCH true      // Set to true if the brew state is being determined 
                               //  by a reed switch attached to the brew solenoid
 
 float weightOffset = -1.5;    //Weight to stop shot.  
@@ -63,16 +65,17 @@ unsigned long lastButtonRead_ms = 0;
 int newButtonState = 0;
 
 struct Shot {
-  unsigned long start_ms;
-  unsigned long end_ms;
+  float start_s;
+  float end_s;
+  float expected_end_s;
   float weight[1000];
-  float time[1000];
+  float time_s[1000];
   int datapoints;
   bool brewing;
 };
 
 //Initialize shot
-Shot shot = {0,0,{},{},0,false};
+Shot shot = {0,0,0,{},{},0,false};
 
 //BLE peripheral device
 BLEService weightService("00002a98-0000-1000-8000-00805f9b34fb"); // create service
@@ -140,7 +143,24 @@ void loop() {
   // otherwise getWeight() will return stale data
   if(scale.newWeightAvailable()){
     currentWeight = scale.getWeight();
-    Serial.println(currentWeight);
+
+    Serial.print(currentWeight);
+
+    // update shot trajectory
+    if(shot.brewing){
+      shot.time_s[shot.datapoints] = seconds_f();
+      shot.weight[shot.datapoints] = currentWeight;
+      shot.datapoints++;
+
+      //get the likely end time of the shot
+      if(shot.datapoints >= N ){
+        calculateEndTime(&shot);
+
+        Serial.print(" ");
+        Serial.print(shot.expected_end_s);
+      }
+    }
+    Serial.println();
   }
 
   // Read button every period
@@ -160,7 +180,7 @@ void loop() {
     newButtonState = 0;
     for(int i=0; i<4; i++){
       if(buttonArr[i] 
-        && millis() > (shot.end_ms + 500)
+        && seconds_f() > (shot.end_s + 0.5)
       ){
         newButtonState = 1;        
       }
@@ -183,7 +203,7 @@ void loop() {
   else if(!MOMENTARY 
   && shot.brewing 
   && !buttonLatched 
-  && millis() > (shot.start_ms + MIN_SHOT_DURATION_MS) 
+  && (seconds_f()) > (shot.start_s + MIN_SHOT_DURATION_S) 
   ){
     buttonLatched = true;
     Serial.println("Button Latched");
@@ -204,7 +224,7 @@ void loop() {
   }
     
   //Max duration reached
-  else if(shot.brewing && millis() > (shot.start_ms + MAX_SHOT_DURATION_MS) ){
+  else if(shot.brewing && seconds_f() > (shot.start_s + MAX_SHOT_DURATION_S) ){
     shot.brewing = false;
     Serial.println("Max brew duration reached");
     setBrewingState(shot.brewing);
@@ -219,8 +239,8 @@ void loop() {
 
   //End shot
   if(shot.brewing 
-  && currentWeight >= (goalWeight + weightOffset)
-  && millis() > (shot.start_ms + MIN_SHOT_DURATION_MS) 
+  && seconds_f() >= shot.expected_end_s
+  && seconds_f() > (shot.start_s + MIN_SHOT_DURATION_S) 
   ){
     Serial.println("weight achieved");
     shot.brewing = false;
@@ -229,12 +249,12 @@ void loop() {
   }
 
   //Detect error of shot
-  if(shot.start_ms 
-  && shot.end_ms
+  if(shot.start_s 
+  && shot.end_s
   && currentWeight >= (goalWeight + weightOffset)
-  && millis() > (shot.end_ms + 3000) ){
-    shot.start_ms = 0;
-    shot.end_ms = 0;
+  && seconds_f() > (shot.end_s + MIN_SHOT_DURATION_S) ){
+    shot.start_s = 0;
+    shot.end_s = 0;
 
     Serial.print("I detected a final weight of ");
     Serial.print(currentWeight);
@@ -259,13 +279,14 @@ void loop() {
 void setBrewingState(bool brewing){
   if(brewing){
     Serial.println("shot started");
-    shot.start_ms = millis();
+    shot.start_s = seconds_f();
     scale.startTimer();
     scale.tare();
+    shot.datapoints = 0;
     
   }else{
     Serial.println("ShotEnded");
-    shot.end_ms = millis();
+    shot.end_s = seconds_f();
     scale.stopTimer();
     if(MOMENTARY){
       //Pulse button to stop brewing
@@ -279,4 +300,27 @@ void setBrewingState(bool brewing){
       digitalWrite(out,LOW); Serial.println("wrote low");
     }
   } 
+}
+void calculateEndTime(Shot* s){
+  //Get line of best fit (y=mx+b) from the last 10 measurements 
+  float sumXY = 0, sumX = 0, sumY = 0, sumSquaredX = 0, m = 0, b = 0, meanX = 0, meanY = 0;
+
+  for(int i = s->datapoints - N; i < s->datapoints; i++){
+    sumXY+=s->time_s[i]*s->weight[i];
+    sumX+=s->time_s[i];
+    sumY+=s->weight[i];
+    sumSquaredX += ( s->time_s[i] * s->time_s[i] );
+  }
+
+  m = (N*sumXY-sumX*sumY) / (N*sumSquaredX-(sumX*sumX));
+  meanX = sumX/N;
+  meanY = sumY/N;
+  b = meanY-m*meanX;
+
+  //Calculate time at which goal weight will be reached (x = (y-b)/m)
+  s->expected_end_s = (goalWeight + weightOffset - b)/m; 
+}
+
+float seconds_f(){
+  return millis()/1000.0;
 }
