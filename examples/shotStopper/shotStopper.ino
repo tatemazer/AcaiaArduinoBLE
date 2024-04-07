@@ -302,23 +302,29 @@ void setBrewingState(bool brewing){
   } 
 }
 void calculateEndTime(Shot* s){
-  //Get line of best fit (y=mx+b) from the last 10 measurements 
-  float sumXY = 0, sumX = 0, sumY = 0, sumSquaredX = 0, m = 0, b = 0, meanX = 0, meanY = 0;
-
-  for(int i = s->datapoints - N; i < s->datapoints; i++){
-    sumXY+=s->time_s[i]*s->weight[i];
-    sumX+=s->time_s[i];
-    sumY+=s->weight[i];
-    sumSquaredX += ( s->time_s[i] * s->time_s[i] );
+  
+  if(s->weight[s->datapoints-1] < 10){
+    s->expected_end_s = seconds_f() + MAX_SHOT_DURATION_S;
   }
+  else{
+    //Get line of best fit (y=mx+b) from the last 10 measurements 
+    float sumXY = 0, sumX = 0, sumY = 0, sumSquaredX = 0, m = 0, b = 0, meanX = 0, meanY = 0;
 
-  m = (N*sumXY-sumX*sumY) / (N*sumSquaredX-(sumX*sumX));
-  meanX = sumX/N;
-  meanY = sumY/N;
-  b = meanY-m*meanX;
+    for(int i = s->datapoints - N; i < s->datapoints; i++){
+      sumXY+=s->time_s[i]*s->weight[i];
+      sumX+=s->time_s[i];
+      sumY+=s->weight[i];
+      sumSquaredX += ( s->time_s[i] * s->time_s[i] );
+    }
 
-  //Calculate time at which goal weight will be reached (x = (y-b)/m)
-  s->expected_end_s = (goalWeight + weightOffset - b)/m; 
+    m = (N*sumXY-sumX*sumY) / (N*sumSquaredX-(sumX*sumX));
+    meanX = sumX/N;
+    meanY = sumY/N;
+    b = meanY-m*meanX;
+
+    //Calculate time at which goal weight will be reached (x = (y-b)/m)
+    s->expected_end_s = (goalWeight + weightOffset - b)/m; 
+  }
 }
 
 float seconds_f(){
