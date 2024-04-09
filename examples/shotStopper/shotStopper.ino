@@ -129,6 +129,9 @@ void loop() {
   while(!scale.isConnected()){
     scale.init(); 
     currentWeight = 0;
+    if(shot.brewing){
+      setBrewingState(false);
+    }
   }
 
   // Check for setpoint updates
