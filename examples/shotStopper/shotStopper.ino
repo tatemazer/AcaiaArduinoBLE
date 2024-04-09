@@ -45,7 +45,7 @@
 #define REEDSWITCH true      // Set to true if the brew state is being determined 
                               //  by a reed switch attached to the brew solenoid
 
-float weightOffset = -1.5;    //Weight to stop shot.  
+float weightOffset = 1.5;    //Weight to stop shot.  
                               // Will change during runtime in 
                               // response to observed error
 //***************
@@ -251,7 +251,7 @@ void loop() {
   //Detect error of shot
   if(shot.start_s 
   && shot.end_s
-  && currentWeight >= (goalWeight + weightOffset)
+  && currentWeight >= (goalWeight - weightOffset)
   && seconds_f() > (shot.end_s + MIN_SHOT_DURATION_S) ){
     shot.start_s = 0;
     shot.end_s = 0;
@@ -260,7 +260,7 @@ void loop() {
     Serial.print(currentWeight);
     Serial.print("g. The goal was ");
     Serial.print(goalWeight);
-    Serial.print("g with an offset of ");
+    Serial.print("g with a negative offset of ");
     Serial.print(weightOffset);
 
     if( abs(goalWeight - currentWeight) > MAX_OFFSET ){
@@ -268,7 +268,7 @@ void loop() {
     }
     else{
       Serial.print("g. Next time I'll create an offset of ");
-      weightOffset += goalWeight - currentWeight;
+      weightOffset += currentWeight - goalWeight;
       Serial.print(weightOffset);
     }
     Serial.println();
@@ -323,7 +323,7 @@ void calculateEndTime(Shot* s){
     b = meanY-m*meanX;
 
     //Calculate time at which goal weight will be reached (x = (y-b)/m)
-    s->expected_end_s = (goalWeight + weightOffset - b)/m; 
+    s->expected_end_s = (goalWeight - weightOffset - b)/m; 
   }
 }
 
