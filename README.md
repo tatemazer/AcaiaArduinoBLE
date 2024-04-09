@@ -67,7 +67,7 @@ Firmware:
 
 ☑ change setpoint over bluetooth
 
-☑ maintain setpoint after powercycle
+☑ maintain setpoint and offset after powercycle
 
 ☑ auto start/stop timer
 

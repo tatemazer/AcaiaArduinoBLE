@@ -33,8 +33,9 @@
                                     // latches.
 #define BUTTON_READ_PERIOD_MS 30
 
-#define EEPROM_SIZE 1  // This is 1-Byte
+#define EEPROM_SIZE 2  // This is 1-Byte
 #define WEIGHT_ADDR 0  // Use the first byte of EEPROM to store the goal weight
+#define OFFSET_ADDR 1  
 
 #define N 10                        // Number of datapoints used to calculate trend line
 
@@ -85,17 +86,25 @@ void setup() {
   Serial.begin(9600);
   EEPROM.begin(EEPROM_SIZE);
 
-  // Get stored setpoint
+  // Get stored setpoint and offset
   goalWeight = EEPROM.read(WEIGHT_ADDR);
+  weightOffset = EEPROM.read(OFFSET_ADDR)/10.0;
   Serial.print("Goal Weight retrieved: ");
+  Serial.println(goalWeight);
+  Serial.print("offset retrieved: ");
   Serial.println(goalWeight);
 
   //If eeprom isn't initialized and has an 
-  // unreasonable weight, default to 36g.
+  // unreasonable weight/offset, default to 36g/1.5g
   if( (goalWeight < 10) || (goalWeight > 200) ){
     goalWeight = 36;
     Serial.print("Goal Weight set to: ");
     Serial.println(goalWeight);
+  }
+  if(weightOffset > MAX_OFFSET){
+    weightOffset = 1.5;
+    Serial.print("Offset set to: ");
+    Serial.println(weightOffset);
   }
   
   // initialize the GPIO hardware
@@ -270,6 +279,9 @@ void loop() {
       Serial.print("g. Next time I'll create an offset of ");
       weightOffset += currentWeight - goalWeight;
       Serial.print(weightOffset);
+
+      EEPROM.write(OFFSET_ADDR, weightOffset*10); //1 byte, 0-255
+      EEPROM.commit();
     }
     Serial.println();
 
