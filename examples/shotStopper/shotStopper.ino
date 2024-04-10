@@ -278,7 +278,7 @@ void loop() {
     Serial.print("g with a negative offset of ");
     Serial.print(weightOffset);
 
-    if( abs(goalWeight - currentWeight) > MAX_OFFSET ){
+    if( abs(currentWeight - goalWeight + weightOffset) > MAX_OFFSET ){
       Serial.print("g. Error assumed. Offset unchanged. ");
     }
     else{
