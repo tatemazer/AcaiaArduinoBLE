@@ -29,14 +29,6 @@ The following variables at the top of the shotStopper.ino file can be configured
 `REEDSWITCH`
 * true if a reed switch on the brew solenoid is being used to determine the brew state. This is typically not necessary so set to FALSE by default
 
-`weightOffset`
-* Changes the default value at which the machine will stop the shot ( END_WEIGHT + weightOffset )
-* Will change as the machine pulls repeated shots to increase precision
-* Reset upon power cycle
-* A value of -1.5 is usually within +/- 1 gram for a standard style espresso.
-* By the second shot, precision is often within 0.1g
-
-
 ## Demo
 
 You can find a demo on Youtube:
