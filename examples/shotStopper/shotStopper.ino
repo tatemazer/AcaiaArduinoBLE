@@ -168,12 +168,9 @@ void loop() {
       Serial.print(shot.shotTimer);
 
       //get the likely end time of the shot
-      if(shot.datapoints >= N ){
-        calculateEndTime(&shot);
-
-        Serial.print(" ");
-        Serial.print(shot.expected_end_s);
-      }
+      calculateEndTime(&shot);
+      Serial.print(" ");
+      Serial.print(shot.expected_end_s);
     }
     Serial.println();
   }
@@ -321,8 +318,8 @@ void setBrewingState(bool brewing){
 }
 void calculateEndTime(Shot* s){
   
-  // Do not  predict end time if there aren't espresso measurements yet
-  if(s->weight[s->datapoints-1] < 10){
+  // Do not  predict end time if there aren't enough espresso measurements yet
+  if( (s->datapoints < N) || (s->weight[s->datapoints-1] < 10) ){
     s->expected_end_s = MAX_SHOT_DURATION_S;
   }
   else{
