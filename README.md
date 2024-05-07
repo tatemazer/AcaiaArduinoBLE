@@ -5,13 +5,15 @@ This is an Arduino Library which can be found in the Arduino IDE Library Manager
 Tested on:
 * Arduino Nano ESP32, Nano 33 IoT
 * Acaia Pyxis, Acaia Lunar Pre-2021, Acaia Lunar 2021, Felicita Arc
-* La Marzocco Linea Mini, La Marzocco GS3, Rancilio Silvia Pro
+* La Marzocco Linea Mini, Linea Micra, La Marzocco GS3, Rancilio Silvia Pro
 
 ...using Arduino IDE 2.3.2 and ArduinoBLE 1.3.6
 
 
 ## Requirements
 This library is intended to be used with any arduino device which is compatible with the [ArduinoBLE](https://www.arduino.cc/reference/en/libraries/arduinoble/) library.
+
+As of version V2.0.0, non-volatile storage for the setpoint and offset is only available for ESP32-based devices.
 
 ## Printed Circuit Board
 The included "shotStopper" example code uses the ShotStopper PCB to make it simple to control your espresso machine using the scale. Files are hosted on [altium 365](https://365.altium.com/files/A15F83F1-2418-4843-B2E7-787275773560).
@@ -98,11 +100,13 @@ Hardware:
 
 ☑ Compatibility with La Marzocco Mini
 
+☑ Compatibility with La Marzocco Micra (V2.0)
+
 ☑ Powered by espresso machine (V2.0)
 
 ☑ Reed switch input (V2.0)
 
-⬜ Compatibility with La Marzocco Micra (Presumed for V2.0)
+⬜ Investigate less expensive microcontroller (seeed XIAO?)
 
 ⬜ Compatibility with Breville (presumed but untested)
 
@@ -116,7 +120,7 @@ Sales:
 
 ☑ Beta Units Shipped (2/22/24)
 
-⬜ Beta Test Complete
+☑ Beta Test Complete (5/7/24)
 
 ⬜ Sales Open
 
