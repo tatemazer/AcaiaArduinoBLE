@@ -38,6 +38,8 @@
 #define WEIGHT_ADDR 0  // Use the first byte of EEPROM to store the goal weight
 #define OFFSET_ADDR 1  
 
+#define DEBUG false
+
 #define N 10                        // Number of datapoints used to calculate trend line
 
 //User defined***
@@ -48,7 +50,7 @@
                               //  by a reed switch attached to the brew solenoid
 //***************
 
-AcaiaArduinoBLE scale;
+AcaiaArduinoBLE scale(DEBUG);
 float currentWeight = 0;
 uint8_t goalWeight = 0;      // Goal Weight to be read from EEPROM
 float weightOffset = 0;

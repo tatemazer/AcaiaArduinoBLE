@@ -1,6 +1,8 @@
 #include <AcaiaArduinoBLE.h>
 
-AcaiaArduinoBLE scale;
+#define DEBUG false
+
+AcaiaArduinoBLE scale(DEBUG);
 void setup() {
   Serial.begin(115200);
   while (!Serial) {}

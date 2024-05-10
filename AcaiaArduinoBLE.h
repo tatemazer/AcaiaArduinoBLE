@@ -31,7 +31,7 @@ enum scale_type{
 
 class AcaiaArduinoBLE{
     public:
-        AcaiaArduinoBLE();
+        AcaiaArduinoBLE(bool debug);
         bool init(String = "");
         bool tare();
         bool startTimer();
@@ -44,12 +44,20 @@ class AcaiaArduinoBLE{
         bool newWeightAvailable();
     private:
         bool isScaleName(String);
+
+        //debug functions
+        void exploreService(BLEService service);
+        void exploreCharacteristic(BLECharacteristic characteristic);
+        void exploreDescriptor(BLEDescriptor descriptor);
+        void printData(const unsigned char data[], int length);
+
         float               _currentWeight;
         BLECharacteristic   _write;
         BLECharacteristic   _read;
         long                _lastHeartBeat;
         bool                _connected;
         scale_type          _type;
+        bool                _debug;
 };
 
 #endif

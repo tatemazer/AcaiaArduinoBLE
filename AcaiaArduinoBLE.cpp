@@ -19,7 +19,8 @@ byte RESET_TIMER[7]             = { 0xef, 0xdd, 0x0d, 0x00, 0x01, 0x00, 0x01 };
 byte TARE_ACAIA[6]              = { 0xef, 0xdd, 0x04, 0x00, 0x00, 0x00 };
 byte TARE_GENERIC[1]            = { 0x54 };
 
-AcaiaArduinoBLE::AcaiaArduinoBLE(){
+AcaiaArduinoBLE::AcaiaArduinoBLE(bool debug){
+    _debug = debug;
     _currentWeight = 0;
     _connected = false;
 }
@@ -37,6 +38,18 @@ bool AcaiaArduinoBLE::init(String mac){
     
     do{
         BLEDevice peripheral = BLE.available();
+
+        if(_debug && peripheral){
+            // discovered a peripheral, print out address, local name, and advertised service
+            Serial.print("Found ");
+            Serial.print(peripheral.address());
+            Serial.print(" '");
+            Serial.print(peripheral.localName());
+            Serial.print("' ");
+            Serial.print(peripheral.advertisedServiceUuid());
+            Serial.println();
+        }
+
         if (peripheral && isScaleName(peripheral.localName())) {
             BLE.stopScan();
 
@@ -55,6 +68,23 @@ bool AcaiaArduinoBLE::init(String mac){
                 Serial.println("Attribute discovery failed!");
                 peripheral.disconnect();
                 return false;
+            }
+
+            if(_debug){
+                // read and print device name of peripheral
+                Serial.println();
+                Serial.print("Device name: ");
+                Serial.println(peripheral.deviceName());
+                Serial.print("Appearance: 0x");
+                Serial.println(peripheral.appearance(), HEX);
+                Serial.println();
+
+                // loop the services of the peripheral and explore each
+                for (int i = 0; i < peripheral.serviceCount(); i++) {
+                    BLEService service = peripheral.service(i);
+
+                    exploreService(service);
+                }
             }
 
             // Determine type of scale
@@ -178,49 +208,63 @@ bool AcaiaArduinoBLE::isConnected(){
     return _connected;
 }
 bool AcaiaArduinoBLE::newWeightAvailable(){
-    byte input[] = {0,0,0,0,0,0,0,0,0,0,0,0,0};
-    if(NEW == _type 
-      && _read.valueUpdated() 
-      && _read.valueLength() == 13 
-      && _read.readValue(input,13) 
-      && input[4] == 0x05
-      ){
-        //Grab weight bytes (5 and 6) 
-        // apply scaling based on the unit byte (9)
-        // get sign byte (10)
-        _currentWeight = (((input[6] & 0xff) << 8) + (input[5] & 0xff)) 
-                        / pow(10,input[9])
-                        * ((input[10] & 0x02) ? -1 : 1);
-        return true;
-    }else if(OLD == _type 
-      && _read.valueUpdated() 
-      && _read.valueLength() == 10
-      && _read.readValue(input,10) 
-      ){
-        //Grab weight bytes (2 and 3),
-        // apply scaling based on the unit byte (6)
-        // get sign byte (7)
-        _currentWeight = (((input[3] & 0xff) << 8) + (input[2] & 0xff)) 
-                        / pow(10, input[6]) 
-                        * ((input[7] & 0x02) ? -1 : 1);
-        return true;
-    }else if(GENERIC == _type 
-      && _read.valueUpdated() 
-      && _read.readValue(input,13) 
-      ){
-        //Grab weight bytes (3-8),
-        // get sign byte (2)
-	    _currentWeight = ( input[2] == 0x2B ? 1  : -1 )
-        *(
-          (input[3] -0x30)*1000 
-        + (input[4] -0x30)*100 
-        + (input[5] -0x30)*10 
-        + (input[6] -0x30)*1 
-        + (input[7] -0x30)*0.1 
-        + (input[8] -0x30)*0.01
-        );
-        return true;
-    }else{
+    
+
+    if(_read.valueUpdated()){
+        byte input[] = {0,0,0,0,0,0,0,0,0,0,0,0,0};
+        int l = _read.valueLength();
+
+
+        // running readValue() seems to crash whenever l > weight packet (10 or 13)
+        if(10 >= l || 
+          (13 >= l && OLD != _type) 
+        ){
+            _read.readValue(input,l);
+
+            if(_debug){
+                Serial.print(l);
+                Serial.print(": 0x");
+
+                printData(input, l);
+                Serial.println();
+            }
+        }
+
+        if(NEW == _type && l == 13 && input[4] == 0x05){
+            //Grab weight bytes (5 and 6) 
+            // apply scaling based on the unit byte (9)
+            // get sign byte (10)
+            _currentWeight = (((input[6] & 0xff) << 8) + (input[5] & 0xff)) 
+                            / pow(10,input[9])
+                            * ((input[10] & 0x02) ? -1 : 1);
+            return true;
+
+        }else if( OLD == _type && l == 10){
+            //Grab weight bytes (2 and 3),
+            // apply scaling based on the unit byte (6)
+            // get sign byte (7)
+            _currentWeight = (((input[3] & 0xff) << 8) + (input[2] & 0xff)) 
+                            / pow(10, input[6]) 
+                            * ((input[7] & 0x02) ? -1 : 1);
+            return true;
+
+        }else if( GENERIC == _type && l == 13){
+            //Grab weight bytes (3-8),
+            // get sign byte (2)
+	        _currentWeight = ( input[2] == 0x2B ? 1  : -1 )
+            *(
+              (input[3] -0x30)*1000 
+            + (input[4] -0x30)*100 
+            + (input[5] -0x30)*10 
+            + (input[6] -0x30)*1 
+            + (input[7] -0x30)*0.1 
+            + (input[8] -0x30)*0.01
+            );
+            return true;
+        }
+        return false;
+    }
+    else{
         return false;
     }
 }
@@ -233,4 +277,72 @@ bool AcaiaArduinoBLE::isScaleName(String name){
         || nameShort == "LUNAR"
         || nameShort == "PROCH"
         || nameShort == "FELIC";
+}
+
+void AcaiaArduinoBLE::exploreService(BLEService service) {
+  // print the UUID of the service
+  Serial.print("Service ");
+  Serial.println(service.uuid());
+
+  // loop the characteristics of the service and explore each
+  for (int i = 0; i < service.characteristicCount(); i++) {
+    BLECharacteristic characteristic = service.characteristic(i);
+
+    exploreCharacteristic(characteristic);
+  }
+}
+
+void AcaiaArduinoBLE::exploreCharacteristic(BLECharacteristic characteristic) {
+  // print the UUID and properties of the characteristic
+  Serial.print("\tCharacteristic ");
+  Serial.print(characteristic.uuid());
+  Serial.print(", properties 0x");
+  Serial.print(characteristic.properties(), HEX);
+
+  // check if the characteristic is readable
+  if (characteristic.canRead()) {
+    // read the characteristic value
+    characteristic.read();
+
+    if (characteristic.valueLength() > 0) {
+      // print out the value of the characteristic
+      Serial.print(", value 0x");
+      printData(characteristic.value(), characteristic.valueLength());
+    }
+  }
+  Serial.println();
+
+  // loop the descriptors of the characteristic and explore each
+  for (int i = 0; i < characteristic.descriptorCount(); i++) {
+    BLEDescriptor descriptor = characteristic.descriptor(i);
+
+    exploreDescriptor(descriptor);
+  }
+}
+
+void AcaiaArduinoBLE::exploreDescriptor(BLEDescriptor descriptor) {
+  // print the UUID of the descriptor
+  Serial.print("\t\tDescriptor ");
+  Serial.print(descriptor.uuid());
+
+  // read the descriptor value
+  descriptor.read();
+
+  // print out the value of the descriptor
+  Serial.print(", value 0x");
+  printData(descriptor.value(), descriptor.valueLength());
+
+  Serial.println();
+}
+
+void AcaiaArduinoBLE::printData(const unsigned char data[], int length) {
+  for (int i = 0; i < length; i++) {
+    unsigned char b = data[i];
+
+    if (b < 16) {
+      Serial.print("0");
+    }
+
+    Serial.print(b, HEX);
+  }
 }
