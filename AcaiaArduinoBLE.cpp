@@ -214,12 +214,13 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
         byte input[] = {0,0,0,0,0,0,0,0,0,0,0,0,0};
         int l = _read.valueLength();
 
-
+        // Get packet
         // running readValue() seems to crash whenever l > weight packet (10 or 13)
-        if(10 >= l || 
-          (13 >= l && OLD != _type) 
+        if(10 >= l ||                       //small unused packets, but maybe useful for future features
+          (13 >= l && OLD != _type) ||      //13 byte packets used by pyxis and older lunar 2021 fw
+          (17 == l && NEW == _type)         //17 byte packets used by newer lunar 2021 fw
         ){
-            _read.readValue(input,l);
+            _read.readValue(input, l == 17 ? 13 : l); //always read a maximum of 13 bytes.
 
             if(_debug){
                 Serial.print(l);
@@ -230,7 +231,9 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
             }
         }
 
-        if(NEW == _type && l == 13 && input[4] == 0x05){
+        // Parse New style data packet
+        if (NEW == _type && (13 == l || 17 == l) && input[4] == 0x05)
+        {
             //Grab weight bytes (5 and 6) 
             // apply scaling based on the unit byte (9)
             // get sign byte (10)
@@ -239,6 +242,7 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
                             * ((input[10] & 0x02) ? -1 : 1);
             return true;
 
+        // Parse old style data packet
         }else if( OLD == _type && l == 10){
             //Grab weight bytes (2 and 3),
             // apply scaling based on the unit byte (6)
