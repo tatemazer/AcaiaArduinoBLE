@@ -50,6 +50,8 @@
                               //  by a reed switch attached to the brew solenoid
 //***************
 
+typedef enum {BUTTON, WEIGHT, TIME, UNDEF} ENDTYPE;
+
 AcaiaArduinoBLE scale(DEBUG);
 float currentWeight = 0;
 uint8_t goalWeight = 0;      // Goal Weight to be read from EEPROM
@@ -74,10 +76,11 @@ struct Shot {
   float time_s[1000];      // Number of seconds after the shot starte
   int datapoints;          // Number of datapoitns in the scatter plot
   bool brewing;            // True when actively brewing, otherwise false
+  ENDTYPE end;
 };
 
 //Initialize shot
-Shot shot = {0,0,0,0,{},{},0,false};
+Shot shot = {0,0,0,0,{},{},0,false,ENDTYPE::UNDEF};
 
 //BLE peripheral device
 BLEService weightService("00002a98-0000-1000-8000-00805f9b34fb"); // create service
@@ -235,6 +238,9 @@ void loop() {
     Serial.println("Button Released");
     buttonPressed = false;
     shot.brewing = !shot.brewing;
+    if(!shot.brewing){
+      shot.end = ENDTYPE::BUTTON;
+    }
     setBrewingState(shot.brewing);
   }
     
@@ -242,6 +248,7 @@ void loop() {
   else if(shot.brewing && shot.shotTimer > MAX_SHOT_DURATION_S ){
     shot.brewing = false;
     Serial.println("Max brew duration reached");
+    shot.end = ENDTYPE::TIME;
     setBrewingState(shot.brewing);
   }
 
@@ -259,6 +266,7 @@ void loop() {
   ){
     Serial.println("weight achieved");
     shot.brewing = false;
+    shot.end = ENDTYPE::WEIGHT;
     setBrewingState(shot.brewing); 
   }
 
@@ -302,21 +310,40 @@ void setBrewingState(bool brewing){
     scale.tare();
     Serial.println("Weight Timer End");
   }else{
-    Serial.println("ShotEnded");
+    Serial.print("ShotEnded by ");
+    switch (shot.end) {
+      case ENDTYPE::TIME:
+      Serial.println("time");
+      break;
+    case ENDTYPE::WEIGHT:
+    Serial.println("weight");
+      break;
+    case ENDTYPE::BUTTON:
+    Serial.println("button");
+      break;
+    case ENDTYPE::UNDEF:
+      Serial.println("undef");
+      break;
+    }
+
     shot.end_s = seconds_f() - shot.start_timestamp_s;
     scale.stopTimer();
-    if(MOMENTARY){
+    if(MOMENTARY &&
+      (ENDTYPE::WEIGHT == shot.end || ENDTYPE::TIME == shot.end)){
       //Pulse button to stop brewing
       digitalWrite(out,HIGH);Serial.println("wrote high");
       delay(300);
       digitalWrite(out,LOW);Serial.println("wrote low");
-    }else{
+    }else if(!MOMENTARY){
       buttonLatched = false;
       buttonPressed = false;
       Serial.println("Button Unlatched and not pressed");
       digitalWrite(out,LOW); Serial.println("wrote low");
     }
   } 
+
+  // Reset
+  shot.end = ENDTYPE::UNDEF;
 }
 void calculateEndTime(Shot* s){
   
