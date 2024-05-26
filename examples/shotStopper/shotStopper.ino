@@ -31,7 +31,7 @@
 #define MAX_SHOT_DURATION_S 50      //Primarily useful for latching switches, since user
                                     // looses control of the paddle once the system
                                     // latches.
-#define BUTTON_READ_PERIOD_MS 30
+#define BUTTON_READ_PERIOD_MS 5
 #define DRIP_DELAY_S          3     // Time after the shot ended to measure the final weight
 
 #define EEPROM_SIZE 2  // This is 1-Byte
@@ -50,6 +50,8 @@
                               //  by a reed switch attached to the brew solenoid
 //***************
 
+#define BUTTON_STATE_ARRAY_LENGTH 31
+
 typedef enum {BUTTON, WEIGHT, TIME, UNDEF} ENDTYPE;
 
 AcaiaArduinoBLE scale(DEBUG);
@@ -57,7 +59,7 @@ float currentWeight = 0;
 uint8_t goalWeight = 0;      // Goal Weight to be read from EEPROM
 float weightOffset = 0;
 float error = 0;
-int buttonArr[4];            // last 4 readings of the button
+int buttonArr[BUTTON_STATE_ARRAY_LENGTH];            // last 4 readings of the button
 
 // button 
 int in = REEDSWITCH ? 9 : 10;
@@ -185,7 +187,7 @@ void loop() {
     lastButtonRead_ms = millis();
 
     //push back for new entry
-    for(int i = 2;i>=0;i--){
+    for(int i = BUTTON_STATE_ARRAY_LENGTH - 2;i>=0;i--){
       buttonArr[i+1] = buttonArr[i];
     }
     buttonArr[0] = !digitalRead(in); //Active Low
@@ -195,7 +197,7 @@ void loop() {
     // after the shot is done, there can be residual noise
     // from the reed switch
     newButtonState = 0;
-    for(int i=0; i<4; i++){
+    for(int i=0; i<BUTTON_STATE_ARRAY_LENGTH; i++){
       if(buttonArr[i]){
         newButtonState = 1;          
       }
