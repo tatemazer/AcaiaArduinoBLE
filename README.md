@@ -4,8 +4,8 @@ This is an Arduino Library which can be found in the Arduino IDE Library Manager
 
 Tested on:
 * Arduino Nano ESP32, Nano 33 IoT
-* Acaia Pyxis, Acaia Lunar Pre-2021, Acaia Lunar 2021, Felicita Arc
-* La Marzocco Linea Mini, Linea Micra, La Marzocco GS3, Rancilio Silvia Pro
+* Acaia Pyxis v1.0.022, Acaia Lunar Pre-2021 v2.6.019, Acaia Lunar 2021 v1.0.016, Felicita Arc
+* La Marzocco Linea Mini, Linea Micra, La Marzocco GS3, Rancilio Silvia Pro, Stone Espresso
 
 ...using Arduino IDE 2.3.2 and ArduinoBLE 1.3.6
 
@@ -18,6 +18,8 @@ As of version V2.0.0, non-volatile storage for the setpoint and offset is only a
 ## Printed Circuit Board
 The included "shotStopper" example code uses the ShotStopper PCB to make it simple to control your espresso machine using the scale. Files are hosted on [altium 365](https://365.altium.com/files/A15F83F1-2418-4843-B2E7-787275773560).
 
+A kit can also be ordered by filling out this interest form: https://forms.gle/DqZSysbdBHmdgNSM7
+
 [![Video showing developmnent of the shotStopper](https://img.youtube.com/vi/434hrQDGtxo/0.jpg)](https://youtu.be/434hrQDGtxo)
 
 ## ShotStopper Example Code Configuration
@@ -29,7 +31,7 @@ The following variables at the top of the shotStopper.ino file can be configured
 * false for latching switches such as Linea Mini/Micra, etc.
 
 `REEDSWITCH`
-* true if a reed switch on the brew solenoid is being used to determine the brew state. This is typically not necessary so set to FALSE by default
+* true if a reed switch on the brew solenoid is being used to determine the brew state. This is typically not necessary so set to FALSE by default. This feature is only available for non-momentary-switches.
 
 ## Demo
 
@@ -106,7 +108,7 @@ Hardware:
 
 ☑ Reed switch input (V2.0)
 
-⬜ Investigate less expensive microcontroller (seeed XIAO?)
+⬜ Investigate less expensive microcontroller
 
 ⬜ Compatibility with Breville (presumed but untested)
 
@@ -122,7 +124,11 @@ Sales:
 
 ☑ Beta Test Complete (5/7/24)
 
-⬜ Sales Open
+☑ Sales Open For GS3, Silvia, and Micra In the US (5/25/24)
+
+⬜ International Sales Open 
+
+⬜ Sales Open for Linea Mini
 
 ## Bugs/Missing
 1. Tare command is less reliable than pressing the tare button.
