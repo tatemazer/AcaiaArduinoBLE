@@ -89,7 +89,6 @@ bool AcaiaArduinoBLE::init(String mac){
                 // loop the services of the peripheral and explore each
                 for (int i = 0; i < peripheral.serviceCount(); i++) {
                     BLEService service = peripheral.service(i);
-
                     exploreService(service);
                 }
             }
@@ -159,10 +158,9 @@ bool AcaiaArduinoBLE::tare(){
 }
 
 bool AcaiaArduinoBLE::startTimer(){
-//    if(_write.writeValue(START_TIMER, 7)){
-  if(_write.writeValue((_type == GENERIC ? START_TIMER_GENERIC : START_TIMER), 7)){
-	Serial.println("start timer write successful");
-          return true;
+    if(_write.writeValue((_type == GENERIC ? START_TIMER_GENERIC : START_TIMER), 7)){
+	    Serial.println("start timer write successful");
+        return true;
     }else{
         _connected = false;
         Serial.println("start timer write failed");
@@ -171,10 +169,9 @@ bool AcaiaArduinoBLE::startTimer(){
 }
 
 bool AcaiaArduinoBLE::stopTimer(){
-//    if(_write.writeValue(STOP_TIMER, 7)){
-  if(_write.writeValue((_type == GENERIC ? STOP_TIMER_GENERIC : STOP_TIMER), 7)){
-          Serial.println("stop timer write successful");
-          return true;
+    if(_write.writeValue((_type == GENERIC ? STOP_TIMER_GENERIC : STOP_TIMER), 7)){
+        Serial.println("stop timer write successful");
+        return true;
     }else{
         _connected = false;
         Serial.println("stop timer write failed");
@@ -183,10 +180,9 @@ bool AcaiaArduinoBLE::stopTimer(){
 }
 
 bool AcaiaArduinoBLE::resetTimer(){
-//    if(_write.writeValue(RESET_TIMER, 7)){
-  if(_write.writeValue((_type == GENERIC ? RESET_TIMER_GENERIC : RESET_TIMER), 7)){
-          Serial.println("reset timer write successful");
-          return true;
+    if(_write.writeValue((_type == GENERIC ? RESET_TIMER_GENERIC : RESET_TIMER), 7)){
+        Serial.println("reset timer write successful");
+        return true;
     }else{
         _connected = false;
         Serial.println("reset timer write failed");
@@ -210,29 +206,25 @@ float AcaiaArduinoBLE::getWeight(){
 bool AcaiaArduinoBLE::heartbeatRequired(){
     if(_type == OLD || NEW){
         return (millis() - _lastHeartBeat) > HEARTBEAT_PERIOD_MS;
-    } else {
-    return 0;
+    }else{
+        return 0;
     }
 }
 bool AcaiaArduinoBLE::isConnected(){
     return _connected;
 }
 bool AcaiaArduinoBLE::newWeightAvailable(){
-    
-
     if(_read.valueUpdated()){
         byte input[] = {0,0,0,0,0,0,0,0,0,0,0,0,0};
-        uint8_t l = _read.valueLength();
-//Serial.print("Packet Lenght: ");
-//Serial.println(l);
+        int l = _read.valueLength();
+
         // Get packet
-        // running readValue() seems to crash whenever l > weight packet (10 or 13)
-        if(10 >= l ||                       //small unused packets, but maybe useful for future features
-          (13 >= l && OLD != _type) ||      //13 byte packets used by pyxis and older lunar 2021 fw
-          (17 == l && NEW == _type) ||        //17 byte packets used by newer lunar 2021 fw
-          (18 == l && GENERIC == _type)
+        if(10 >= l ||                       //10 byte packets for pre-2021 lunar
+          (13 >= l && OLD != _type) ||      //13 byte packets for pyxis and older lunar 2021 fw
+          (17 == l && NEW == _type) ||      //17 byte packets for newer lunar 2021 fw
+          (18 == l && GENERIC == _type)     //18 byte packets for generic scales
         ){
-            _read.readValue(input, l == 17 ? 13 : l); //always read a maximum of 13 bytes.
+            _read.readValue(input, (l > 13) ? 13 : l); // readValue() seems to crash whenever l > weight packet (10, 13 or 18)
 
             if(_debug){
                 Serial.print(l);
@@ -281,8 +273,6 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
         return false;
     }
     else{
-//Serial.println("no weight for you");
-//delay(10000);
         return false;
     }
 }
