@@ -48,6 +48,9 @@
                               // false for latching switches such as Linea Mini/Micra
 #define REEDSWITCH false      // Set to true if the brew state is being determined 
                               //  by a reed switch attached to the brew solenoid
+#define AUTOTARE true         // Automatically tare when shot is started 
+                              //  and 3 seconds after a latching switch brew 
+                              // (as defined by MOMENTARY)
 //***************
 
 #define BUTTON_STATE_ARRAY_LENGTH 31
@@ -229,7 +232,9 @@ void loop() {
     Serial.println("Button Latched");
     digitalWrite(out,HIGH); Serial.println("wrote high");
     // Get the scale to beep to inform user.
-    scale.tare();
+    if(AUTOTARE){
+      scale.tare();
+    }
   }
 
   //button released
@@ -309,7 +314,9 @@ void setBrewingState(bool brewing){
     shot.shotTimer = 0;
     shot.datapoints = 0;
     scale.startTimer();
-    scale.tare();
+    if(AUTOTARE){
+      scale.tare();
+    }
     Serial.println("Weight Timer End");
   }else{
     Serial.print("ShotEnded by ");
