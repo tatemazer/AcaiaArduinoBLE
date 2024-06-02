@@ -33,6 +33,10 @@ The following variables at the top of the shotStopper.ino file can be configured
 `REEDSWITCH`
 * true if a reed switch on the brew solenoid is being used to determine the brew state. This is typically not necessary so set to FALSE by default. This feature is only available for non-momentary-switches.
 
+`AUTOTARE`
+* true by default. The scale will automatically tare when the shot is started, and, if MOMENTARY is false, will perform another tare at 3 seconds to notify the user that the switch is latched and should be returned to the home position.
+* if set to false, the shotStopper will never send a tare command. It is the user's responsibility to tare before each shot. This may be helpful if the scale is not stable when the shot begins, and thus the scale is unable to tare reliably.
+
 ## Demo
 
 You can find a demo on Youtube:
