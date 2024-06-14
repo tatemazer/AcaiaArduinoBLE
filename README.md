@@ -4,10 +4,12 @@ This is an Arduino Library which can be found in the Arduino IDE Library Manager
 
 Tested on:
 * Arduino Nano ESP32, Nano 33 IoT
-* Acaia Pyxis v1.0.022, Acaia Lunar Pre-2021 v2.6.019, Acaia Lunar 2021 v1.0.016, Felicita Arc
+* Acaia Pyxis v1.0.022, Acaia Lunar Pre-2021 v2.6.019, Acaia Lunar 2021 v1.0.016*, Felicita Arc
 * La Marzocco Linea Mini, Linea Micra, La Marzocco GS3, Rancilio Silvia Pro, Stone Espresso
 
 ...using Arduino IDE 2.3.2 and ArduinoBLE 1.3.6
+
+*There is a bug in the firmware for a handful of 2021 Lunars that make this incompatible. The best way to determine if your scale has this bug, is to scan for bluetooth devices with your phone. If you see a device named "ACAIAL..." instead of "LUNAR...", this scale is unfortunately incompatible at this time.
 
 
 ## Requirements
@@ -19,6 +21,8 @@ As of version V2.0.0, non-volatile storage for the setpoint and offset is only a
 The included "shotStopper" example code uses the ShotStopper PCB to make it simple to control your espresso machine using the scale. Files are hosted on [altium 365](https://365.altium.com/files/A15F83F1-2418-4843-B2E7-787275773560).
 
 A kit can also be ordered by filling out this interest form: https://forms.gle/DqZSysbdBHmdgNSM7
+
+Join the discord for updates and support: https://discord.gg/NMXb5VYtre
 
 [![Video showing developmnent of the shotStopper](https://img.youtube.com/vi/434hrQDGtxo/0.jpg)](https://youtu.be/434hrQDGtxo)
 
@@ -112,7 +116,7 @@ Hardware:
 
 ☑ Reed switch input (V2.0)
 
-⬜ Investigate less expensive microcontroller
+⬜ V3 with on-board esp32 module (work-in-progress)
 
 ⬜ Compatibility with Breville (presumed but untested)
 
@@ -130,9 +134,9 @@ Sales:
 
 ☑ Sales Open For GS3, Silvia, and Micra In the US (5/25/24)
 
-⬜ International Sales Open 
+☑ Sales Open for Linea Mini
 
-⬜ Sales Open for Linea Mini
+⬜ International Sales Open 
 
 ## Bugs/Missing
 1. Tare command is less reliable than pressing the tare button.
