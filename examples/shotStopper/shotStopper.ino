@@ -73,6 +73,17 @@
 
 typedef enum {BUTTON, WEIGHT, TIME, UNDEF} ENDTYPE;
 
+// RGB Colors {Red,Green,Blue}
+int RED[3] = {255, 0, 0};
+int GREEN[3] = {0, 255, 0};
+int BLUE[3] = {0, 0, 255};
+int MAGENTA[3] = {255, 0, 255};
+int CYAN[3] = {0, 255, 255};
+int YELLOW[3] = {255, 255, 0};
+int WHITE[3] = {255, 255, 255};
+int OFF[3] = {0,0,0};
+int currentColor[3] = {0,0,0};
+
 AcaiaArduinoBLE scale(DEBUG);
 float currentWeight = 0;
 uint8_t goalWeight = 0;      // Goal Weight to be read from EEPROM
@@ -138,6 +149,7 @@ void setup() {
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
   pinMode(LED_BLUE, OUTPUT);
+  setColor(OFF);
 
   // initialize the BLE hardware
   BLE.begin();
@@ -154,14 +166,16 @@ void loop() {
 
   // Connect to scale
   while(!scale.isConnected()){
+
+    setColor(RED);
     scale.init(); 
     currentWeight = 0;
     if(shot.brewing){
       setBrewingState(false);
     }
-    digitalWrite(LED_RED, LOW);
-    digitalWrite(LED_GREEN, HIGH);
-    digitalWrite(LED_BLUE, HIGH);
+    if(scale.isConnected()){
+      setColor(YELLOW);
+    }
   }
 
   // Check for setpoint updates
@@ -187,9 +201,10 @@ void loop() {
     currentWeight = scale.getWeight();
 
     Serial.print(currentWeight);
-    digitalWrite(LED_RED, GREEN);
-    digitalWrite(LED_GREEN, LOW);
-    digitalWrite(LED_BLUE, HIGH);
+
+    if(!shot.brewing){
+      setColor(GREEN);
+    }
 
     // update shot trajectory
     if(shot.brewing){
@@ -285,9 +300,7 @@ void loop() {
 
   //Blink LED while brewing
   if(shot.brewing){
-    digitalWrite(LED_BUILTIN, (millis()/1000) % 2 == 0);
-  }else{
-    digitalWrite(LED_BUILTIN, LOW);
+    setColor( (millis()/1000)%2 ? GREEN : BLUE );
   }
 
   //End shot
@@ -407,4 +420,13 @@ void calculateEndTime(Shot* s){
 
 float seconds_f(){
   return millis()/1000.0;
+}
+
+void setColor(int rgb[3]){
+  analogWrite(LED_RED,   255-rgb[0] );
+  analogWrite(LED_GREEN, 255-rgb[1] );
+  analogWrite(LED_BLUE,  255-rgb[2] );
+  currentColor[0] = rgb[0];
+  currentColor[1] = rgb[1];
+  currentColor[2] = rgb[2];
 }
