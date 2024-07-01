@@ -53,6 +53,22 @@
                               // (as defined by MOMENTARY)
 //***************
 
+// Board Hardware 
+#ifdef ARDUINO_ESP32S3_DEV
+  #define LED_RED     46
+  #define LED_BLUE    45
+  #define LED_GREEN   47
+  #define LED_BUILTIN 48
+  #define IN          21
+  #define OUT         38
+  #define REED_IN     18
+#else //todo: find nano esp32 identifier
+  //LED's are defined by framework
+  #define IN          10
+  #define OUT         11
+  #define REED_IN     9
+#endif 
+
 #define BUTTON_STATE_ARRAY_LENGTH 31
 
 typedef enum {BUTTON, WEIGHT, TIME, UNDEF} ENDTYPE;
@@ -65,8 +81,7 @@ float error = 0;
 int buttonArr[BUTTON_STATE_ARRAY_LENGTH];            // last 4 readings of the button
 
 // button 
-int in = REEDSWITCH ? 9 : 10;
-int out = 11;
+int in = REEDSWITCH ? REED_IN : IN;
 bool buttonPressed = false; //physical status of button
 bool buttonLatched = false; //electrical status of button
 unsigned long lastButtonRead_ms = 0;
@@ -119,7 +134,10 @@ void setup() {
   // initialize the GPIO hardware
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(in, INPUT_PULLUP);
-  pinMode(out, OUTPUT);
+  pinMode(OUT, OUTPUT);
+  pinMode(LED_RED, OUTPUT);
+  pinMode(LED_GREEN, OUTPUT);
+  pinMode(LED_BLUE, OUTPUT);
 
   // initialize the BLE hardware
   BLE.begin();
@@ -141,6 +159,9 @@ void loop() {
     if(shot.brewing){
       setBrewingState(false);
     }
+    digitalWrite(LED_RED, LOW);
+    digitalWrite(LED_GREEN, HIGH);
+    digitalWrite(LED_BLUE, HIGH);
   }
 
   // Check for setpoint updates
@@ -166,6 +187,9 @@ void loop() {
     currentWeight = scale.getWeight();
 
     Serial.print(currentWeight);
+    digitalWrite(LED_RED, GREEN);
+    digitalWrite(LED_GREEN, LOW);
+    digitalWrite(LED_BLUE, HIGH);
 
     // update shot trajectory
     if(shot.brewing){
@@ -230,7 +254,7 @@ void loop() {
   ){
     buttonLatched = true;
     Serial.println("Button Latched");
-    digitalWrite(out,HIGH); Serial.println("wrote high");
+    digitalWrite(OUT,HIGH); Serial.println("wrote high");
     // Get the scale to beep to inform user.
     if(AUTOTARE){
       scale.tare();
@@ -340,14 +364,14 @@ void setBrewingState(bool brewing){
     if(MOMENTARY &&
       (ENDTYPE::WEIGHT == shot.end || ENDTYPE::TIME == shot.end)){
       //Pulse button to stop brewing
-      digitalWrite(out,HIGH);Serial.println("wrote high");
+      digitalWrite(OUT,HIGH);Serial.println("wrote high");
       delay(300);
-      digitalWrite(out,LOW);Serial.println("wrote low");
+      digitalWrite(OUT,LOW);Serial.println("wrote low");
     }else if(!MOMENTARY){
       buttonLatched = false;
       buttonPressed = false;
       Serial.println("Button Unlatched and not pressed");
-      digitalWrite(out,LOW); Serial.println("wrote low");
+      digitalWrite(OUT,LOW); Serial.println("wrote low");
     }
   } 
 
