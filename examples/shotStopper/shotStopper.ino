@@ -118,6 +118,7 @@ BLEService weightService("00002a98-0000-1000-8000-00805f9b34fb"); // create serv
 BLEByteCharacteristic weightCharacteristic("0x2A98",  BLEWrite | BLERead);
 
 void setup() {
+  setCpuFrequencyMhz(80);
   Serial.begin(9600);
   EEPROM.begin(EEPROM_SIZE);
 
