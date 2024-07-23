@@ -18,6 +18,8 @@ This library is intended to be used with any arduino device which is compatible 
 As of version V2.0.0, non-volatile storage for the setpoint and offset is only available for ESP32-based devices.
 
 ## Printed Circuit Board
+![shotStopperV3 1_screenshot](https://github.com/user-attachments/assets/46a48270-7e02-4032-8dc1-0c996d883b8d)
+
 The included "shotStopper" example code uses the ShotStopper PCB to make it simple to control your espresso machine using the scale. Files are hosted on [altium 365](https://365.altium.com/files/A15F83F1-2418-4843-B2E7-787275773560).
 
 A kit can also be ordered by visiting [tatemazer.com](https://tatemazer.com/store)
