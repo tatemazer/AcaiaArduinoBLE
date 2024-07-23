@@ -20,7 +20,7 @@ As of version V2.0.0, non-volatile storage for the setpoint and offset is only a
 ## Printed Circuit Board
 The included "shotStopper" example code uses the ShotStopper PCB to make it simple to control your espresso machine using the scale. Files are hosted on [altium 365](https://365.altium.com/files/A15F83F1-2418-4843-B2E7-787275773560).
 
-A kit can also be ordered by filling out this interest form: https://forms.gle/DqZSysbdBHmdgNSM7
+A kit can also be ordered by visiting [tatemazer.com](https://tatemazer.com/store)
 
 Join the discord for updates and support: https://discord.gg/NMXb5VYtre
 
@@ -116,7 +116,7 @@ Hardware:
 
 ☑ Reed switch input (V2.0)
 
-⬜ V3 with on-board esp32 module (work-in-progress)
+☑ on-board esp32 module (V3.0)
 
 ⬜ Compatibility with Breville (presumed but untested)
 
