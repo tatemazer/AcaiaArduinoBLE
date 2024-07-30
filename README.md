@@ -4,7 +4,7 @@ This is an Arduino Library which can be found in the Arduino IDE Library Manager
 
 Tested on:
 * Arduino Nano ESP32, Nano 33 IoT
-* Acaia Pyxis v1.0.022, Acaia Lunar Pre-2021 v2.6.019, Acaia Lunar 2021 v1.0.016*, Felicita Arc
+* Acaia Pyxis v1.0.022, Acaia Lunar Pre-2021 v2.6.019, Acaia Lunar 2021 v1.0.016*, Pearl S 1.0.056, Felicita Arc
 * La Marzocco Linea Mini, Linea Micra, La Marzocco GS3, Rancilio Silvia Pro, Stone Espresso
 
 ...using Arduino IDE 2.3.2 and ArduinoBLE 1.3.6
@@ -92,6 +92,8 @@ Scale Compatibility:
 ☑ Acaia Lunar
 
 ☑ Acaia Lunar (Pre-2021)
+
+☑ Pearl S
 
 ☑ Felicita Arc
 

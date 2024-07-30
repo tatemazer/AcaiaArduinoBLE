@@ -283,6 +283,7 @@ bool AcaiaArduinoBLE::isScaleName(String name){
         || nameShort == "ACAIA"
         || nameShort == "PYXIS"
         || nameShort == "LUNAR"
+        || nameShort == "PEARL"
         || nameShort == "PROCH"
         || nameShort == "FELIC";
 }
