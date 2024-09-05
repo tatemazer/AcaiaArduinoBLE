@@ -132,15 +132,15 @@ Sales:
 
 ☑ Beta Units Built
 
-☑ Beta Units Shipped (2/22/24)
+☑ Beta Units Shipped
 
-☑ Beta Test Complete (5/7/24)
+☑ Beta Test Complete
 
-☑ Sales Open For GS3, Silvia, and Micra In the US (5/25/24)
+☑ Sales Open For GS3, Silvia, and Micra In the US
 
 ☑ Sales Open for Linea Mini
 
-⬜ International Sales Open 
+☑ International Sales Open 
 
 ## Bugs/Missing
 1. Tare command is less reliable than pressing the tare button.
