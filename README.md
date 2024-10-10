@@ -3,9 +3,21 @@ Acaia / Felicita Scale Gateway using the ArduinoBLE library for devices such as 
 This is an Arduino Library which can be found in the Arduino IDE Library Manager.
 
 Tested on:
-* Arduino Nano ESP32, Nano 33 IoT
-* Acaia Pyxis v1.0.022, Acaia Lunar Pre-2021 v2.6.019, Acaia Lunar 2021 v1.0.016*, Pearl S 1.0.056, Felicita Arc
-* La Marzocco Linea Mini, Linea Micra, La Marzocco GS3, Rancilio Silvia Pro, Stone Espresso
+* MicroControllers:
+  * Arduino Nano ESP32
+  * Nano 33 IoT
+  * ESP32-S3-WROOM-1-N4
+* Scales:
+  *   Acaia Pyxis v1.0.022
+  *   Acaia Lunar Pre-2021 v2.6.019
+  *   Acaia Lunar 2021 v1.0.016*
+  *   Acaia Pearl S 1.0.056
+* Espresso Machines:
+  * La Marzocco Linea Mini
+  * Linea Micra
+  * La Marzocco GS3
+  * Rancilio Silvia Pro
+  * Stone Espresso
 
 ...using Arduino IDE 2.3.2 and ArduinoBLE 1.3.6
 
@@ -18,7 +30,7 @@ This library is intended to be used with any arduino device which is compatible 
 As of version V2.0.0, non-volatile storage for the setpoint and offset is only available for ESP32-based devices.
 
 ## Printed Circuit Board
-![shotStopperV3 1_screenshot](https://github.com/user-attachments/assets/46a48270-7e02-4032-8dc1-0c996d883b8d)
+![shotStopperV3 screenshot](https://github.com/user-attachments/assets/a09fe8fb-3705-44c0-88a2-07c61d67b8f6)
 
 The included "shotStopper" example code uses the ShotStopper PCB to make it simple to control your espresso machine using the scale. Files are hosted on [altium 365](https://365.altium.com/files/A15F83F1-2418-4843-B2E7-787275773560).
 
@@ -95,7 +107,7 @@ Scale Compatibility:
 
 ☑ Pearl S
 
-☑ Felicita Arc
+❌ Felicita Arc (buggy, see bug report)
 
 
 Hardware:
