@@ -351,6 +351,7 @@ void setBrewingState(bool brewing){
     shot.start_timestamp_s = seconds_f();
     shot.shotTimer = 0;
     shot.datapoints = 0;
+    scale.resetTimer();
     scale.startTimer();
     if(AUTOTARE){
       scale.tare();

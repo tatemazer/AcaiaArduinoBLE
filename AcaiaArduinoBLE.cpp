@@ -147,7 +147,7 @@ bool AcaiaArduinoBLE::init(String mac){
 }
 
 bool AcaiaArduinoBLE::tare(){
-    if(_write.writeValue((_type == GENERIC ? TARE_GENERIC : TARE_ACAIA), 20)){
+    if(_write.writeValue((_type == GENERIC ? TARE_GENERIC : TARE_ACAIA), 6)){
           Serial.println("tare write successful");
           return true;
     }else{
@@ -158,7 +158,7 @@ bool AcaiaArduinoBLE::tare(){
 }
 
 bool AcaiaArduinoBLE::startTimer(){
-    if(_write.writeValue((_type == GENERIC ? START_TIMER_GENERIC : START_TIMER), 7)){
+    if(_write.writeValue((_type == GENERIC ? START_TIMER_GENERIC : START_TIMER), 6)){
 	    Serial.println("start timer write successful");
         return true;
     }else{
@@ -169,7 +169,7 @@ bool AcaiaArduinoBLE::startTimer(){
 }
 
 bool AcaiaArduinoBLE::stopTimer(){
-    if(_write.writeValue((_type == GENERIC ? STOP_TIMER_GENERIC : STOP_TIMER), 7)){
+    if(_write.writeValue((_type == GENERIC ? STOP_TIMER_GENERIC : STOP_TIMER), 6)){
         Serial.println("stop timer write successful");
         return true;
     }else{
@@ -180,7 +180,7 @@ bool AcaiaArduinoBLE::stopTimer(){
 }
 
 bool AcaiaArduinoBLE::resetTimer(){
-    if(_write.writeValue((_type == GENERIC ? RESET_TIMER_GENERIC : RESET_TIMER), 7)){
+    if(_write.writeValue((_type == GENERIC ? RESET_TIMER_GENERIC : RESET_TIMER), 6)){
         Serial.println("reset timer write successful");
         return true;
     }else{
