@@ -3,7 +3,7 @@ Acaia / ~~Felicita~~ Bookoo Scale Gateway using the ArduinoBLE library for devic
 This is an Arduino Library which can be found in the Arduino IDE Library Manager.
 
 # Update to support Bookoo Themis Scale
-I wasn't able to purchase a Acaia Pyxis either new or second hand. Bookoo released a similar bluetooth scale to the Pryxis called the [Bookoo Themis](https://bookoocoffee.com/shop/bookoo-mini-scale/). Support for the Felicita seems to have dropped and updated the UUID to allow the Bookoo Scale to connect as a generic scale. This has only been tested on a dev board, simulating the button press if was installed on a LM GS3.
+I wasn't able to purchase a Acaia Pyxis either new or second hand. Bookoo released a similar bluetooth scale to the Pryxis called the [Bookoo Themis](https://bookoocoffee.com/shop/bookoo-mini-scale/). Support for the Felicita seems to have dropped, so updated the UUID and commands to allow the Bookoo Scale to connect as a generic scale. This has only been tested on a dev board, simulating the button press if was installed on a LM GS3. I want to fully test the code on a production board before submitting a pull request to @tatemazer.
 
 Tested on:
 * MicroControllers:
