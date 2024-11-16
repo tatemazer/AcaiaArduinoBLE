@@ -1,6 +1,9 @@
 # AcaiaArduinoBLE
-Acaia / Felicita Scale Gateway using the ArduinoBLE library for devices such as the esp32, arduino nano esp32, and arduino nano iot 33.
+Acaia / ~~Felicita~~ Bookoo Scale Gateway using the ArduinoBLE library for devices such as the esp32, arduino nano esp32, and arduino nano iot 33.
 This is an Arduino Library which can be found in the Arduino IDE Library Manager.
+
+# Update to support Bookoo Themis Scale
+I wasn't able to purchase a Acaia Pyxis either new or second hand. Bookoo released a similar bluetooth scale to the Pryxis called the [Bookoo Themis](https://bookoocoffee.com/shop/bookoo-mini-scale/). Support for the Felicita seems to have dropped and updated the UUID to allow the Bookoo Scale to connect as a generic scale. This has only been tested on a dev board, simulating the button press if was installed on a LM GS3.
 
 Tested on:
 * MicroControllers:
@@ -12,6 +15,7 @@ Tested on:
   *   Acaia Lunar Pre-2021 v2.6.019
   *   Acaia Lunar 2021 v1.0.016*
   *   Acaia Pearl S 1.0.056
+  *   Bookoo Themis
 * Espresso Machines:
   * La Marzocco Linea Mini
   * Linea Micra
