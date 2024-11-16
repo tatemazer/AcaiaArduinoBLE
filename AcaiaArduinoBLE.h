@@ -16,8 +16,8 @@
 #define READ_CHAR_OLD_VERSION  "2a80"
 #define WRITE_CHAR_NEW_VERSION "49535343-8841-43f4-a8d4-ecbe34729bb3"
 #define READ_CHAR_NEW_VERSION  "49535343-1e4d-4bd9-ba61-23c647249616"
-#define WRITE_CHAR_GENERIC     "ffe1"
-#define READ_CHAR_GENERIC      "ffe1"
+#define WRITE_CHAR_GENERIC     "ff11"
+#define READ_CHAR_GENERIC      "ff12"
 #define HEARTBEAT_PERIOD_MS     2750
 
 #include "Arduino.h"

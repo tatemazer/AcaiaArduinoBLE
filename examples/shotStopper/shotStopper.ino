@@ -114,8 +114,8 @@ struct Shot {
 Shot shot = {0,0,0,0,{},{},0,false,ENDTYPE::UNDEF};
 
 //BLE peripheral device
-BLEService weightService("00002a98-0000-1000-8000-00805f9b34fb"); // create service
-BLEByteCharacteristic weightCharacteristic("0x2A98",  BLEWrite | BLERead);
+BLEService weightService("0x0FFE"); // create service
+BLEByteCharacteristic weightCharacteristic("0xFF11",  BLEWrite | BLERead);
 
 void setup() {
   setCpuFrequencyMhz(80);
