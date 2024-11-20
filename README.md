@@ -1,26 +1,18 @@
 # AcaiaArduinoBLE
-Acaia / ~~Felicita~~ Bookoo Scale Gateway using the ArduinoBLE library for devices such as the esp32, arduino nano esp32, and arduino nano iot 33.
+Acaia / Bookoo Scale Gateway using the ArduinoBLE library for devices such as the esp32, arduino nano esp32, and arduino nano iot 33.
 This is an Arduino Library which can be found in the Arduino IDE Library Manager.
 
-Tested on:
-* MicroControllers:
-  * Arduino Nano ESP32
-  * Nano 33 IoT
-  * ESP32-S3-WROOM-1-N4
-* Scales:
-  *   Acaia Pyxis v1.0.022
-  *   Acaia Lunar Pre-2021 v2.6.019
-  *   Acaia Lunar 2021 v1.0.016*
-  *   Acaia Pearl S 1.0.056
-  *   Bookoo Themis
-* Espresso Machines:
-  * La Marzocco Linea Mini
-  * Linea Micra
-  * La Marzocco GS3
-  * Rancilio Silvia Pro
-  * Stone Espresso
+## Scale Compatibility
 
-...using Arduino IDE 2.3.2 and ArduinoBLE 1.3.6
+| Mfr    | Model   | Submodel | Firmware | Connection Performance | Auto-Tare | Auto-Start/Stop Timer | Auto-Reset Timer |
+| ------ | ------- | ------- |------- |------ | ------ |------ |------ |
+| Acaia  | Lunar   | USB-Micro <br>(Pre-2021) | v2.6.019 | Great | Yes | Yes | Untested
+| Acaia  | Lunar   | USB-C <br> (2021 version)  | v1.0.016 | Ok  ⚠️WARNING⚠️ only compatible* if the bluetooth device name is "LUNAR..." and not "ACAIAL..." | Yes | Yes | Yes
+| Acaia  | Pearl S | USB-Micro                  | v1.0.056 | Ok    | Yes | Yes | Yes
+| Acaia  | Pearl S | USB-C                      | ----     | Ok    | Yes | No  | Untested
+| Acaia  | Pyxis   | ----                       | v1.0.022 | Good  | Not Recommended (too sensitive) | Yes | Yes
+| Bookoo | Themis  | ----                       | v1.0.5   | Great | Yes | Yes | Yes 
+
 
 *There is a bug in the firmware for a handful of 2021 Lunars that make this incompatible. The best way to determine if your scale has this bug, is to scan for bluetooth devices with your phone. If you see a device named "ACAIAL..." instead of "LUNAR...", this scale is unfortunately incompatible at this time.
 
@@ -41,13 +33,24 @@ Join the discord for updates and support: https://discord.gg/NMXb5VYtre
 
 [![Video showing developmnent of the shotStopper](https://img.youtube.com/vi/434hrQDGtxo/0.jpg)](https://youtu.be/434hrQDGtxo)
 
+## Espresso Machine Compatibility
+
+| Model | Powered by Machine (5V) | Brew State Detection Method | Officially Documented |
+| ----- | ----------------------- | --------------------------- | ---------------- |
+| GS3 | No, requires included power supply | Brew Button | Yes |
+| Linea Micra | Yes | Brew Switch | Yes | 
+| Linea Mini | Older, non-IoT machines may require a power supply | Brew Switch | Yes |
+| Silvia Pro (X) | Yes | Brew Button | Yes |
+| Stone Espresso | Yes | Solenoid Valve (Reed Switch) | Yes |
+| Ascaso Steel Duo PID | Untested | Brew Button | No
+ 
 ## ShotStopper Example Code Configuration
 
 The following variables at the top of the shotStopper.ino file can be configured by the user:
 
 `MOMENTARY`
-* true for momentary switches such as GS3 AV, Rancilio Silvia Pro, Breville, etc.
-* false for latching switches such as Linea Mini/Micra, etc.
+* true for momentary switches such as GS3 AV, Rancilio Silvia Pro, etc.
+* false for latching switches such as Linea Mini/Micra, stone, etc.
 
 `REEDSWITCH`
 * true if a reed switch on the brew solenoid is being used to determine the brew state. This is typically not necessary so set to FALSE by default. This feature is only available for non-momentary-switches.
@@ -92,9 +95,9 @@ Firmware:
 
 ☑ flowrate-based shot end-time
 
-⬜ auto timer reset
+☑ auto timer reset
 
-⬜ Improve Tare Command Reliability
+⬜ Improve Pyxis Tare Command Reliability
 
 
 
@@ -104,12 +107,13 @@ Scale Compatibility:
 
 ☑ Acaia Lunar
 
-☑ Acaia Lunar (Pre-2021)
+☑ *most* Acaia Lunar (Pre-2021)
 
 ☑ Pearl S
 
 ❌ Felicita Arc (buggy, see bug report)
 
+☑ Bookoo
 
 Hardware:
 
@@ -165,3 +169,5 @@ This is largely a basic port of the  [LunarGateway](https://github.com/frowin/Lu
 In addition to some minor notes from [pyacaia](https://github.com/lucapinello/pyacaia) library written for raspberryPI.
 
 Felicita Arc support contributions from baettigp
+
+Bookoo contributions from philgood
