@@ -1,5 +1,5 @@
 # AcaiaArduinoBLE
-Acaia / Felicita Scale Gateway using the ArduinoBLE library for devices such as the esp32, arduino nano esp32, and arduino nano iot 33.
+Acaia / ~~Felicita~~ Bookoo Scale Gateway using the ArduinoBLE library for devices such as the esp32, arduino nano esp32, and arduino nano iot 33.
 This is an Arduino Library which can be found in the Arduino IDE Library Manager.
 
 Tested on:
@@ -12,6 +12,7 @@ Tested on:
   *   Acaia Lunar Pre-2021 v2.6.019
   *   Acaia Lunar 2021 v1.0.016*
   *   Acaia Pearl S 1.0.056
+  *   Bookoo Themis
 * Espresso Machines:
   * La Marzocco Linea Mini
   * Linea Micra

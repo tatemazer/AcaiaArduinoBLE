@@ -17,10 +17,10 @@ byte START_TIMER[7]             = { 0xef, 0xdd, 0x0d, 0x00, 0x00, 0x00, 0x00 };
 byte STOP_TIMER[7]              = { 0xef, 0xdd, 0x0d, 0x00, 0x02, 0x00, 0x02 };
 byte RESET_TIMER[7]             = { 0xef, 0xdd, 0x0d, 0x00, 0x01, 0x00, 0x01 };
 byte TARE_ACAIA[6]              = { 0xef, 0xdd, 0x04, 0x00, 0x00, 0x00 };
-byte TARE_GENERIC[1]            = { 0x54 };
-byte START_TIMER_GENERIC[1]     = { 0x52 };
-byte STOP_TIMER_GENERIC[1]      = { 0x53 };
-byte RESET_TIMER_GENERIC[1]     = { 0x43 };
+byte TARE_GENERIC[6]            = { 0x03, 0x0a, 0x01, 0x00, 0x00, 0x08 };
+byte START_TIMER_GENERIC[6]     = { 0x03, 0x0a, 0x04, 0x00, 0x00, 0x0a };
+byte STOP_TIMER_GENERIC[6]      = { 0x03, 0x0a, 0x05, 0x00, 0x00, 0x0d };
+byte RESET_TIMER_GENERIC[6]     = { 0x03, 0x0a, 0x06, 0x00, 0x00, 0x0c };
 
 /* Generic commands from
    https://github.com/graphefruit/Beanconqueror/blob/master/src/classes/devices/felicita/constants.ts
@@ -147,7 +147,7 @@ bool AcaiaArduinoBLE::init(String mac){
 }
 
 bool AcaiaArduinoBLE::tare(){
-    if(_write.writeValue((_type == GENERIC ? TARE_GENERIC : TARE_ACAIA), 20)){
+    if(_write.writeValue((_type == GENERIC ? TARE_GENERIC : TARE_ACAIA), 6)){
           Serial.println("tare write successful");
           return true;
     }else{
@@ -158,7 +158,7 @@ bool AcaiaArduinoBLE::tare(){
 }
 
 bool AcaiaArduinoBLE::startTimer(){
-    if(_write.writeValue((_type == GENERIC ? START_TIMER_GENERIC : START_TIMER), 7)){
+    if(_write.writeValue((_type == GENERIC ? START_TIMER_GENERIC : START_TIMER), 6)){
 	    Serial.println("start timer write successful");
         return true;
     }else{
@@ -169,7 +169,7 @@ bool AcaiaArduinoBLE::startTimer(){
 }
 
 bool AcaiaArduinoBLE::stopTimer(){
-    if(_write.writeValue((_type == GENERIC ? STOP_TIMER_GENERIC : STOP_TIMER), 7)){
+    if(_write.writeValue((_type == GENERIC ? STOP_TIMER_GENERIC : STOP_TIMER), 6)){
         Serial.println("stop timer write successful");
         return true;
     }else{
@@ -180,7 +180,7 @@ bool AcaiaArduinoBLE::stopTimer(){
 }
 
 bool AcaiaArduinoBLE::resetTimer(){
-    if(_write.writeValue((_type == GENERIC ? RESET_TIMER_GENERIC : RESET_TIMER), 7)){
+    if(_write.writeValue((_type == GENERIC ? RESET_TIMER_GENERIC : RESET_TIMER), 6)){
         Serial.println("reset timer write successful");
         return true;
     }else{
@@ -222,7 +222,7 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
         if(10 >= l ||                       //10 byte packets for pre-2021 lunar
           (13 >= l && OLD != _type) ||      //13 byte packets for pyxis and older lunar 2021 fw
           (17 == l && NEW == _type) ||      //17 byte packets for newer lunar 2021 fw
-          (18 == l && GENERIC == _type)     //18 byte packets for generic scales
+          (20 == l && GENERIC == _type)     //18 byte packets for generic scales
         ){
             _read.readValue(input, (l > 13) ? 13 : l); // readValue() seems to crash whenever l > weight packet (10, 13 or 18)
 
@@ -256,18 +256,15 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
                             * ((input[7] & 0x02) ? -1 : 1);
             return true;
 
-        }else if( GENERIC == _type && l == 18){
+        }else if( GENERIC == _type && l == 20){
             //Grab weight bytes (3-8),
             // get sign byte (2)
-	        _currentWeight = ( input[2] == 0x2B ? 1  : -1 )
-            *(
-              (input[3] -0x30)*1000 
-            + (input[4] -0x30)*100 
-            + (input[5] -0x30)*10 
-            + (input[6] -0x30)*1 
-            + (input[7] -0x30)*0.1 
-            + (input[8] -0x30)*0.01
-            );
+            _currentWeight = (( input[7] << 16) | (input[8] << 8) | input[9]);
+	        
+	          if (input[6] == 45) { // Check if the value is negative
+            _currentWeight = -_currentWeight;
+                }
+            _currentWeight = _currentWeight / 100;
             return true;
         }
         return false;
@@ -285,7 +282,7 @@ bool AcaiaArduinoBLE::isScaleName(String name){
         || nameShort == "LUNAR"
         || nameShort == "PEARL"
         || nameShort == "PROCH"
-        || nameShort == "FELIC";
+        || nameShort == "BOOKO";
 }
 
 void AcaiaArduinoBLE::exploreService(BLEService service) {
