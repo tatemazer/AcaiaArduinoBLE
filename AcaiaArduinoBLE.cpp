@@ -158,7 +158,8 @@ bool AcaiaArduinoBLE::tare(){
 }
 
 bool AcaiaArduinoBLE::startTimer(){
-    if(_write.writeValue((_type == GENERIC ? START_TIMER_GENERIC : START_TIMER), 6)){
+    if(_write.writeValue((_type == GENERIC ? START_TIMER_GENERIC : START_TIMER),
+                         (_type == GENERIC ? 6                   : 7))){
 	    Serial.println("start timer write successful");
         return true;
     }else{
@@ -169,7 +170,8 @@ bool AcaiaArduinoBLE::startTimer(){
 }
 
 bool AcaiaArduinoBLE::stopTimer(){
-    if(_write.writeValue((_type == GENERIC ? STOP_TIMER_GENERIC : STOP_TIMER), 6)){
+    if(_write.writeValue((_type == GENERIC ? STOP_TIMER_GENERIC : STOP_TIMER),
+                         (_type == GENERIC ? 6                  : 7 ))){
         Serial.println("stop timer write successful");
         return true;
     }else{
@@ -180,7 +182,8 @@ bool AcaiaArduinoBLE::stopTimer(){
 }
 
 bool AcaiaArduinoBLE::resetTimer(){
-    if(_write.writeValue((_type == GENERIC ? RESET_TIMER_GENERIC : RESET_TIMER), 6)){
+    if(_write.writeValue((_type == GENERIC ? RESET_TIMER_GENERIC : RESET_TIMER),
+                         (_type == GENERIC ? 6                  : 7 ))){
         Serial.println("reset timer write successful");
         return true;
     }else{
