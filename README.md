@@ -9,7 +9,7 @@ This is an Arduino Library which can be found in the Arduino IDE Library Manager
 | Acaia  | Lunar   | USB-Micro <br>(Pre-2021) | v2.6.019 | Great | Yes | Yes | Untested
 | Acaia  | Lunar   | USB-C <br> (2021 version)  | v1.0.016 | Ok  ⚠️WARNING⚠️ only compatible* if the bluetooth device name is "LUNAR..." and not "ACAIAL..." | Yes | Yes | Yes
 | Acaia  | Pearl S | USB-Micro                  | v1.0.056 | Ok    | Yes | Yes | Yes
-| Acaia  | Pearl S | USB-C                      | ----     | Ok    | Yes | No  | Untested
+| Acaia  | Pearl S | USB-C                      | ----     | Ok    | Yes | Yes  | Yes
 | Acaia  | Pyxis   | ----                       | v1.0.022 | Good  | Not Recommended (too sensitive) | Yes | Yes
 | Bookoo | Themis  | ----                       | v1.0.5   | Great | Yes | Yes | Yes 
 
