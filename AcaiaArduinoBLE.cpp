@@ -210,7 +210,7 @@ float AcaiaArduinoBLE::getWeight(){
 }
 
 bool AcaiaArduinoBLE::heartbeatRequired(){
-    if(_type == OLD || NEW){
+    if(_type == OLD || _type == NEW){
         return (millis() - _lastHeartBeat) > HEARTBEAT_PERIOD_MS;
     }else{
         return 0;
