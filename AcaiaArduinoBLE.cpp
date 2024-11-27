@@ -30,10 +30,12 @@ AcaiaArduinoBLE::AcaiaArduinoBLE(bool debug){
     _debug = debug;
     _currentWeight = 0;
     _connected = false;
+    _packetPeriod = 0;
 }
 
 bool AcaiaArduinoBLE::init(String mac){
     unsigned long start = millis();
+    _lastPacket = 0;
 
     if (mac == ""){
         BLE.scan();
@@ -138,6 +140,7 @@ bool AcaiaArduinoBLE::init(String mac){
                 return false; 
             }
             _connected = true;
+            _packetPeriod = 0;
             return true;
         }
     }while(millis() - start < 10000);
@@ -217,7 +220,16 @@ bool AcaiaArduinoBLE::isConnected(){
     return _connected;
 }
 bool AcaiaArduinoBLE::newWeightAvailable(){
-    if(_read.valueUpdated()){
+    bool newWeightPacket = false;
+
+    //check how long its been since we last got a response
+    if(_lastPacket && millis()-_lastPacket > MAX_PACKET_PERIOD_MS){
+        Serial.println("timeout!");
+        //reset connection
+        _connected = false;
+        BLE.disconnect();
+        return false;
+    }else if(_read.valueUpdated()){
         byte input[] = {0,0,0,0,0,0,0,0,0,0,0,0,0};
         int l = _read.valueLength();
 
@@ -247,7 +259,7 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
             _currentWeight = (((input[6] & 0xff) << 8) + (input[5] & 0xff)) 
                             / pow(10,input[9])
                             * ((input[10] & 0x02) ? -1 : 1);
-            return true;
+            newWeightPacket = true;
 
         // Parse old style data packet
         }else if( OLD == _type && l == 10){
@@ -257,7 +269,7 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
             _currentWeight = (((input[3] & 0xff) << 8) + (input[2] & 0xff)) 
                             / pow(10, input[6]) 
                             * ((input[7] & 0x02) ? -1 : 1);
-            return true;
+            newWeightPacket = true;
 
         }else if( GENERIC == _type && l == 20){
             //Grab weight bytes (3-8),
@@ -268,9 +280,15 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
             _currentWeight = -_currentWeight;
                 }
             _currentWeight = _currentWeight / 100;
-            return true;
+            newWeightPacket = true;
         }
-        return false;
+        if(newWeightPacket){
+            if(_lastPacket){
+                _packetPeriod = millis() - _lastPacket;
+            }
+            _lastPacket = millis();
+        }
+        return newWeightPacket;
     }
     else{
         return false;
