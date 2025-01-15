@@ -224,6 +224,7 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
         // Get packet
         if(10 >= l ||                       //10 byte packets for pre-2021 lunar
           (13 >= l && OLD != _type) ||      //13 byte packets for pyxis and older lunar 2021 fw
+          (14 == l && OLD == _type) ||      //14 byte packets for lunar 2021 AL008
           (17 == l && NEW == _type) ||      //17 byte packets for newer lunar 2021 fw
           (20 == l && GENERIC == _type)     //18 byte packets for generic scales
         ){
@@ -250,7 +251,7 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
             return true;
 
         // Parse old style data packet
-        }else if( OLD == _type && l == 10){
+        }else if( OLD == _type && (l == 10 || l == 14)){
             //Grab weight bytes (2 and 3),
             // apply scaling based on the unit byte (6)
             // get sign byte (7)
