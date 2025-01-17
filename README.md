@@ -14,9 +14,6 @@ This is an Arduino Library which can be found in the Arduino IDE Library Manager
 | Bookoo | Themis  | ----                       | v1.0.5   | Great | Yes | Yes | Yes 
 
 
-*There is a bug in the firmware for a handful of 2021 Lunars that make this incompatible. The best way to determine if your scale has this bug, is to scan for bluetooth devices with your phone. If you see a device named "ACAIAL..." instead of "LUNAR...", this scale is unfortunately incompatible at this time.
-
-
 ## Requirements
 This library is intended to be used with any arduino device which is compatible with the [ArduinoBLE](https://www.arduino.cc/reference/en/libraries/arduinoble/) library.
 
