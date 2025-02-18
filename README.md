@@ -30,7 +30,7 @@ Join the discord for updates and support: https://discord.gg/NMXb5VYtre
 
 [![Video showing developmnent of the shotStopper](https://img.youtube.com/vi/434hrQDGtxo/0.jpg)](https://youtu.be/434hrQDGtxo)
 
-## Espresso Machine Compatibility
+## Espresso Machine Compatibility*
 
 | Model | Powered by Machine (5V) | Brew State Detection Method | Officially Documented |
 | ----- | ----------------------- | --------------------------- | ---------------- |
@@ -40,6 +40,8 @@ Join the discord for updates and support: https://discord.gg/NMXb5VYtre
 | Silvia Pro (X) | Yes | Brew Button | Yes |
 | Stone Espresso | Yes | Solenoid Valve (Reed Switch) | Yes |
 | Ascaso Steel Duo PID | Untested | Brew Button | No
+
+*Ace Dotshot cannot be combined with the shotStopper at this time. Fortunately, shot duration is automated at the scale with the shotStopper, making the dotShot redundant.
  
 ## ShotStopper Example Code Configuration
 
