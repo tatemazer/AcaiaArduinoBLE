@@ -19,6 +19,7 @@
 #define WRITE_CHAR_GENERIC     "ff12"
 #define READ_CHAR_GENERIC      "ff11"
 #define HEARTBEAT_PERIOD_MS     2750
+#define MAX_PACKET_PERIOD_MS    5000
 
 #include "Arduino.h"
 #include <ArduinoBLE.h>
@@ -57,7 +58,9 @@ class AcaiaArduinoBLE{
         long                _lastHeartBeat;
         bool                _connected;
         scale_type          _type;
-        bool                _debug;
+        bool                _debug; 
+        long                _packetPeriod;
+        long                _lastPacket;
 };
 
 #endif
