@@ -268,6 +268,15 @@ void setup() {
   // If eeprom isn't initialized default to 36g/1.5g
   loadOrInitEEPROM();
 
+  // initialize the GPIO hardware
+  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(in, INPUT_PULLUP);
+  pinMode(OUT, OUTPUT);
+  pinMode(LED_RED, OUTPUT);
+  pinMode(LED_GREEN, OUTPUT);
+  pinMode(LED_BLUE, OUTPUT);
+  setColor(OFF);
+
   // initialize the BLE hardware
   initializeBLE();
 }
