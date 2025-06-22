@@ -34,7 +34,10 @@ AcaiaArduinoBLE::AcaiaArduinoBLE(bool debug){
 }
 
 bool AcaiaArduinoBLE::init(String mac){
-    unsigned long start = millis();
+    static unsigned long lastCall = millis();
+    if(lastCall + 50 > millis()) return false;
+    lastCall = millis();
+
     _lastPacket = 0;
 
     if (mac == ""){
@@ -45,7 +48,6 @@ bool AcaiaArduinoBLE::init(String mac){
         return false;
     }
     
-    do{
         BLEDevice peripheral = BLE.available();
 
         if(_debug && peripheral){
@@ -143,24 +145,39 @@ bool AcaiaArduinoBLE::init(String mac){
             _packetPeriod = 0;
             return true;
         }
-    }while(millis() - start < 10000);
-
-    Serial.println("failed to find scale");
+        
     return false;    
 }
 
 bool AcaiaArduinoBLE::tare(){
-    if(_write.writeValue((_type == GENERIC ? TARE_GENERIC : TARE_ACAIA), 6)){
-          Serial.println("tare write successful");
-          return true;
-    }else{
+    if(_connected == false) return false;
+
+    if (!_write || !_write.canWrite()) {
+        Serial.println("WRITE characteristic is invalid!");
+        _connected = false;
+        return false;
+    }
+
+    if (_write.writeValue((_type == GENERIC ? TARE_GENERIC : TARE_ACAIA), 6)){
+        Serial.println("tare write successful");
+        return true;
+    } else {
         _connected = false;
         Serial.println("tare write failed");
         return false;
     }
 }
 
+
 bool AcaiaArduinoBLE::startTimer(){
+    if(_connected == false) return false;
+
+    if (!_write || !_write.canWrite()) {
+        Serial.println("WRITE characteristic is invalid or not writable!");
+        _connected = false;
+        return false;
+    }
+
     if(_write.writeValue((_type == GENERIC ? START_TIMER_GENERIC : START_TIMER),
                          (_type == GENERIC ? 6                   : 7))){
 	    Serial.println("start timer write successful");
@@ -173,6 +190,15 @@ bool AcaiaArduinoBLE::startTimer(){
 }
 
 bool AcaiaArduinoBLE::stopTimer(){
+    if(_connected == false) return false;
+
+    if (!_write || !_write.canWrite()) {
+        Serial.println("WRITE characteristic is invalid or not writable!");
+        _connected = false;
+        return false;
+    }
+
+
     if(_write.writeValue((_type == GENERIC ? STOP_TIMER_GENERIC : STOP_TIMER),
                          (_type == GENERIC ? 6                  : 7 ))){
         Serial.println("stop timer write successful");
@@ -185,6 +211,14 @@ bool AcaiaArduinoBLE::stopTimer(){
 }
 
 bool AcaiaArduinoBLE::resetTimer(){
+    if(_connected == false) return false;
+
+    if (!_write || !_write.canWrite()) {
+        Serial.println("WRITE characteristic is invalid or not writable!");
+        _connected = false;
+        return false;
+    }
+
     if(_write.writeValue((_type == GENERIC ? RESET_TIMER_GENERIC : RESET_TIMER),
                          (_type == GENERIC ? 6                  : 7 ))){
         Serial.println("reset timer write successful");
@@ -197,6 +231,14 @@ bool AcaiaArduinoBLE::resetTimer(){
 }
 
 bool AcaiaArduinoBLE::heartbeat(){
+    if(_connected == false) return false;
+
+    if (!_write || !_write.canWrite()) {
+        Serial.println("WRITE characteristic is invalid or not writable!");
+        _connected = false;
+        return false;
+    }
+
     if(_write.writeValue(HEARTBEAT, 7)){
         _lastHeartBeat = millis();
         return true;
@@ -219,82 +261,79 @@ bool AcaiaArduinoBLE::heartbeatRequired(){
 bool AcaiaArduinoBLE::isConnected(){
     return _connected;
 }
-bool AcaiaArduinoBLE::newWeightAvailable(){
+
+bool AcaiaArduinoBLE::newWeightAvailable() {
+    static byte input[20]; // maximum expected size
+    static const float pow10[] = {1, 10, 100, 1000, 10000, 100000}; // precomputed powers
+
     bool newWeightPacket = false;
 
-    //check how long its been since we last got a response
-    if(_lastPacket && millis()-_lastPacket > MAX_PACKET_PERIOD_MS){
+    // Timeout check
+    if (_lastPacket && millis() - _lastPacket > (_type == GENERIC? MAX_PACKET_PERIOD_GENERIC_MS : MAX_PACKET_PERIOD_ACAIA_MS)) {
         Serial.println("timeout!");
-        //reset connection
         _connected = false;
-        BLE.disconnect();
+        if (BLE.connected()) {
+            BLE.disconnect();
+        }
         return false;
-    }else if(_read.valueUpdated()){
-        byte input[] = {0,0,0,0,0,0,0,0,0,0,0,0,0};
+    }
+
+    if (_read.valueUpdated()) {
         int l = _read.valueLength();
 
-        // Get packet
-        if(10 >= l ||                       //10 byte packets for pre-2021 lunar
-          (13 >= l && OLD != _type) ||      //13 byte packets for pyxis and older lunar 2021 fw
-          (14 == l && OLD == _type) ||      //14 byte packets for lunar 2021 AL008
-          (17 == l && NEW == _type) ||      //17 byte packets for newer lunar 2021 fw
-          (20 == l && GENERIC == _type)     //18 byte packets for generic scales
-        ){
-            _read.readValue(input, (l > 13) ? 13 : l); // readValue() seems to crash whenever l > weight packet (10, 13 or 18)
+        if ((l >= 10 && l <= 20) && _read) {
+            // Clear previous data
+            memset(input, 0, sizeof(input));
+            _read.readValue(input, (l > 20) ? 20 : l);
 
-            if(_debug){
+            if (_debug) {
+                Serial.print("Packet (len ");
                 Serial.print(l);
-                Serial.print(": 0x");
-
+                Serial.print("): 0x");
                 printData(input, l);
                 Serial.println();
             }
-        }
 
-        // Parse New style data packet
-        if (NEW == _type && (13 == l || 17 == l) && input[4] == 0x05)
-        {
-            //Grab weight bytes (5 and 6) 
-            // apply scaling based on the unit byte (9)
-            // get sign byte (10)
-            _currentWeight = (((input[6] & 0xff) << 8) + (input[5] & 0xff)) 
-                            / pow(10,input[9])
-                            * ((input[10] & 0x02) ? -1 : 1);
-            newWeightPacket = true;
+            // NEW type
+            if (_type == NEW && (l == 13 || l == 17) && input[4] == 0x05) {
+                uint16_t rawWeight = ((input[6] & 0xff) << 8) | (input[5] & 0xff);
+                byte scaleIndex = input[9];
+                float scale = (scaleIndex < sizeof(pow10) / sizeof(pow10[0])) ? pow10[scaleIndex] : 1.0;
+                _currentWeight = rawWeight / scale * ((input[10] & 0x02) ? -1 : 1);
+                newWeightPacket = true;
 
-        // Parse old style data packet
-        }else if( OLD == _type && (l == 10 || l == 14)){
-            //Grab weight bytes (2 and 3),
-            // apply scaling based on the unit byte (6)
-            // get sign byte (7)
-            _currentWeight = (((input[3] & 0xff) << 8) + (input[2] & 0xff)) 
-                            / pow(10, input[6]) 
-                            * ((input[7] & 0x02) ? -1 : 1);
-            newWeightPacket = true;
+            // OLD type
+            } else if (_type == OLD && (l == 10 || l == 14)) {
+                uint16_t rawWeight = ((input[3] & 0xff) << 8) | (input[2] & 0xff);
+                byte scaleIndex = input[6];
+                float scale = (scaleIndex < sizeof(pow10) / sizeof(pow10[0])) ? pow10[scaleIndex] : 1.0;
+                _currentWeight = rawWeight / scale * ((input[7] & 0x02) ? -1 : 1);
+                newWeightPacket = true;
 
-        }else if( GENERIC == _type && l == 20){
-            //Grab weight bytes (3-8),
-            // get sign byte (2)
-            _currentWeight = (( input[7] << 16) | (input[8] << 8) | input[9]);
-	        
-	          if (input[6] == 45) { // Check if the value is negative
-            _currentWeight = -_currentWeight;
+            // GENERIC type
+            } else if (_type == GENERIC && l == 20) {
+                int32_t raw = (input[7] << 16) | (input[8] << 8) | input[9];
+                if (input[6] == 45) {
+                    raw = -raw;
                 }
-            _currentWeight = _currentWeight / 100;
-            newWeightPacket = true;
-        }
-        if(newWeightPacket){
-            if(_lastPacket){
-                _packetPeriod = millis() - _lastPacket;
+                _currentWeight = raw / 100.0f;
+                newWeightPacket = true;
             }
-            _lastPacket = millis();
+
+            // Timestamp and delta
+            if (newWeightPacket) {
+                if (_lastPacket) {
+                    _packetPeriod = millis() - _lastPacket;
+                }
+                _lastPacket = millis();
+            }
         }
-        return newWeightPacket;
     }
-    else{
-        return false;
-    }
+
+    return newWeightPacket;
 }
+
+
 bool AcaiaArduinoBLE::isScaleName(String name){
     String nameShort = name.substring(0,5);
 
