@@ -31,20 +31,21 @@ AcaiaArduinoBLE::AcaiaArduinoBLE(bool debug){
     _currentWeight = 0;
     _connected = false;
     _packetPeriod = 0;
+    _isScanning = false;
 }
 
 bool AcaiaArduinoBLE::init(String mac){
-    static unsigned long lastCall = millis();
-    if(lastCall + 50 > millis()) return false;
-    lastCall = millis();
-
     _lastPacket = 0;
 
-    if (mac == ""){
-        BLE.scan();
-    }else if (!BLE.scanForAddress(mac)){
+    if (mac == "") {
+        if (!_isScanning) {
+            BLE.scan();
+            _isScanning = true;
+        }
+    } else if (!BLE.scanForAddress(mac)) {
         Serial.print("Failed to find ");
         Serial.println(mac);
+        _isScanning = false;
         return false;
     }
     
@@ -63,6 +64,7 @@ bool AcaiaArduinoBLE::init(String mac){
 
         if (peripheral && isScaleName(peripheral.localName())) {
             BLE.stopScan();
+            _isScanning = false;
 
             Serial.println("Connecting ...");
             if (peripheral.connect()) {

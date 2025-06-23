@@ -64,6 +64,7 @@ class AcaiaArduinoBLE{
         bool                _debug; 
         long                _packetPeriod;
         long                _lastPacket;
+        bool                _isScanning;
 };
 
 #endif
