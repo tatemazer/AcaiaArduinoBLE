@@ -30,19 +30,20 @@ Join the discord for updates and support: https://discord.gg/NMXb5VYtre
 
 [![Video showing developmnent of the shotStopper](https://img.youtube.com/vi/434hrQDGtxo/0.jpg)](https://youtu.be/434hrQDGtxo)
 
-## Espresso Machine Compatibility*
+## Espresso Machine Compatibility
 
 | Model | Powered by Machine (5V) | Brew State Detection Method | Officially Documented |
 | ----- | ----------------------- | --------------------------- | ---------------- |
 | GS3 | No, requires included power supply | Brew Button | Yes |
 | Linea Micra | Yes | Brew Switch | Yes | 
-| Linea Mini | Older, non-IoT machines may require a power supply | Brew Switch | Yes |
+| Linea Mini* | Older, non-IoT machines may require a power supply | Brew Switch | Yes |
+| Linea Mini R | Yes | Brew Switch | Yes |
 | Silvia Pro (X) | Yes | Brew Button | Yes |
 | Stone Espresso | Yes | Solenoid Valve (Reed Switch) | Yes |
 | Ascaso Steel Duo PID | Untested | Brew Button | No
 
-*Ace Dotshot cannot be combined with the shotStopper at this time. Fortunately, shot duration is automated at the scale with the shotStopper, making the dotShot redundant.
- 
+*Ace Dotshot is compatible with the shotStopper. Also note, shot duration is automated at the scale with the shotStopper, making the dotShot redundant.
+
 ## ShotStopper Example Code Configuration
 
 The following variables at the top of the shotStopper.ino file can be configured by the user:
@@ -168,5 +169,7 @@ This is largely a basic port of the  [LunarGateway](https://github.com/frowin/Lu
 In addition to some minor notes from [pyacaia](https://github.com/lucapinello/pyacaia) library written for raspberryPI.
 
 Felicita Arc support contributions from baettigp
+
 Bookoo contributions from philgood
+
 lunar 2019 contributions from jniebuhr
