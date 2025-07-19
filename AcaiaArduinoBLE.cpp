@@ -784,7 +784,7 @@ void AcaiaArduinoBLE::notifyCallback(const uint8_t* pData, size_t length) {
                 Serial.println(_currentWeight);
             }
         }
-        else if (_type == NEW && (length == 13 || length == 17) && pData[4] == 0x05) {
+        else if (((_type == NEW && (length == 13 || length == 17)) || (_type == OLD && length == 13)) && pData[4] == 0x05) {
             // Parse New style data packet
             _currentWeight = (((pData[6] & 0xff) << 8) + (pData[5] & 0xff)) / pow(10, pData[9]) * ((pData[10] & 0x02) ? -1 : 1);
             newWeightPacket = true;
