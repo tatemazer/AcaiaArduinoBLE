@@ -116,6 +116,7 @@ class AcaiaArduinoBLE {
         static void staticNotifyCallback(NimBLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify);
         void notifyCallback(const uint8_t* pData, size_t length);
         void cleanup();
+        void clearScanResults();
 
         // Debug functions
         void printData(const uint8_t data[], size_t length);
@@ -141,6 +142,7 @@ class AcaiaArduinoBLE {
         unsigned long _connectionStartTime;
         String _targetMac;
         bool _cleanupComplete;
+        unsigned long _lastScanClear;
 
         int _connectionAttempts;
 
