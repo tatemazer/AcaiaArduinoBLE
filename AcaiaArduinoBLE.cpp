@@ -614,10 +614,8 @@ bool AcaiaArduinoBLE::isConnecting() const {
     return _connectionState == SCANNING || _connectionState == CONNECTING || _connectionState == DISCOVERING || _connectionState == CONFIGURING;
 }
 
-bool AcaiaArduinoBLE::tare() {
-    if (!_connected || !_pWriteCharacteristic) return false;
-
-    bool success = false;
+void AcaiaArduinoBLE::tare() {
+    if (!_connected || !_pWriteCharacteristic) return;
 
     if (_type == DECENT) {
         // Increment tare counter (0-255, wraps around)
@@ -626,97 +624,78 @@ bool AcaiaArduinoBLE::tare() {
         uint8_t cmd[7] = {0x03, 0x0F, decent_scale_tare_counter, 0x00, 0x00, 0x00, 0x00};
         cmd[6] = 0x0F ^ decent_scale_tare_counter; // XOR checksum
 
-        success = _pWriteCharacteristic->writeValue(cmd, sizeof(cmd), false);
+        _pWriteCharacteristic->writeValue(cmd, sizeof(cmd), false);
 
         if (_debug) {
-            Serial.print("Decent Scale tare command sent: ");
-            Serial.println(success ? "success" : "failed");
+            Serial.print("Decent Scale tare command sent");
         }
     }
     else {
         if (_type == GENERIC) {
-            success = _pWriteCharacteristic->writeValue(TARE_GENERIC, sizeof(TARE_GENERIC), false);
+            _pWriteCharacteristic->writeValue(TARE_GENERIC, sizeof(TARE_GENERIC), false);
         }
         else {
-            success = _pWriteCharacteristic->writeValue(TARE_ACAIA, sizeof(TARE_ACAIA), false);
+            _pWriteCharacteristic->writeValue(TARE_ACAIA, sizeof(TARE_ACAIA), false);
         }
 
         if (_debug) {
-            Serial.print("Tare command sent: ");
-            Serial.println(success ? "success" : "failed");
+            Serial.print("Tare command sent");
         }
     }
-
-    return success;
 }
 
-bool AcaiaArduinoBLE::startTimer() const {
-    if (!_connected || !_pWriteCharacteristic) return false;
-
-    bool success = false;
+void AcaiaArduinoBLE::startTimer() const {
+    if (!_connected || !_pWriteCharacteristic) return;
 
     if (_type == DECENT) {
-        success = _pWriteCharacteristic->writeValue(START_TIMER_DECENT, sizeof(START_TIMER_DECENT), false);
+        _pWriteCharacteristic->writeValue(START_TIMER_DECENT, sizeof(START_TIMER_DECENT), false);
     }
     else if (_type == GENERIC) {
-        success = _pWriteCharacteristic->writeValue(START_TIMER_GENERIC, sizeof(START_TIMER_GENERIC), false);
+        _pWriteCharacteristic->writeValue(START_TIMER_GENERIC, sizeof(START_TIMER_GENERIC), false);
     }
     else {
-        success = _pWriteCharacteristic->writeValue(START_TIMER, sizeof(START_TIMER), false);
+        _pWriteCharacteristic->writeValue(START_TIMER, sizeof(START_TIMER), false);
     }
 
     if (_debug) {
-        Serial.print("Start timer command sent: ");
-        Serial.println(success ? "success" : "failed");
+        Serial.print("Start timer command sent");
     }
-
-    return success;
 }
 
-bool AcaiaArduinoBLE::stopTimer() const {
-    if (!_connected || !_pWriteCharacteristic) return false;
-
-    bool success = false;
+void AcaiaArduinoBLE::stopTimer() const {
+    if (!_connected || !_pWriteCharacteristic) return;
 
     if (_type == DECENT) {
-        success = _pWriteCharacteristic->writeValue(STOP_TIMER_DECENT, sizeof(STOP_TIMER_DECENT), false);
+        _pWriteCharacteristic->writeValue(STOP_TIMER_DECENT, sizeof(STOP_TIMER_DECENT), false);
     }
     else if (_type == GENERIC) {
-        success = _pWriteCharacteristic->writeValue(STOP_TIMER_GENERIC, sizeof(STOP_TIMER_GENERIC), false);
+        _pWriteCharacteristic->writeValue(STOP_TIMER_GENERIC, sizeof(STOP_TIMER_GENERIC), false);
     }
     else {
-        success = _pWriteCharacteristic->writeValue(STOP_TIMER, sizeof(STOP_TIMER), false);
+        _pWriteCharacteristic->writeValue(STOP_TIMER, sizeof(STOP_TIMER), false);
     }
 
     if (_debug) {
-        Serial.print("Stop timer command sent: ");
-        Serial.println(success ? "success" : "failed");
+        Serial.print("Stop timer command sent");
     }
-
-    return success;
 }
 
-bool AcaiaArduinoBLE::resetTimer() const {
-    if (!_connected || !_pWriteCharacteristic) return false;
-
-    bool success = false;
+void AcaiaArduinoBLE::resetTimer() const {
+    if (!_connected || !_pWriteCharacteristic) return;
 
     if (_type == DECENT) {
-        success = _pWriteCharacteristic->writeValue(RESET_TIMER_DECENT, sizeof(RESET_TIMER_DECENT), false);
+        _pWriteCharacteristic->writeValue(RESET_TIMER_DECENT, sizeof(RESET_TIMER_DECENT), false);
     }
     else if (_type == GENERIC) {
-        success = _pWriteCharacteristic->writeValue(RESET_TIMER_GENERIC, sizeof(RESET_TIMER_GENERIC), false);
+        _pWriteCharacteristic->writeValue(RESET_TIMER_GENERIC, sizeof(RESET_TIMER_GENERIC), false);
     }
     else {
-        success = _pWriteCharacteristic->writeValue(RESET_TIMER, sizeof(RESET_TIMER), false);
+        _pWriteCharacteristic->writeValue(RESET_TIMER, sizeof(RESET_TIMER), false);
     }
 
     if (_debug) {
-        Serial.print("Reset timer command sent: ");
-        Serial.println(success ? "success" : "failed");
+        Serial.print("Reset timer command sent");
     }
-
-    return success;
 }
 
 bool AcaiaArduinoBLE::heartbeat() {
