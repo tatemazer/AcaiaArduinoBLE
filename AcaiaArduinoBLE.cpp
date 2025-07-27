@@ -103,6 +103,7 @@ AcaiaArduinoBLE::AcaiaArduinoBLE(const bool debug) {
     _cleanupComplete = false;
     _connectionAttempts = 0;
     decent_scale_tare_counter = 0;
+    _lastScanClear = 0;
 
     _instance = this; // Set static instance for callbacks
 }
@@ -121,6 +122,7 @@ void AcaiaArduinoBLE::cleanup() {
     // Stop scanning first
     if (_pBLEScan) {
         _pBLEScan->stop();
+        clearScanResults();
         _pBLEScan = nullptr;
     }
 
@@ -194,10 +196,15 @@ bool AcaiaArduinoBLE::init(const String& mac) {
         return false;
     }
 
-    _pBLEScan->setScanCallbacks(_pAdvertisedDeviceCallbacks);
+    // From https://github.com/gaggimate/esp-arduino-ble-scales/blob/main/src/remote_scales.cpp
+    // CRITICAL: Set true to prevent storing unwanted devices and avoid memory leaks
+    _pBLEScan->setScanCallbacks(_pAdvertisedDeviceCallbacks, true);
     _pBLEScan->setActiveScan(true);
-    _pBLEScan->setInterval(1349);
-    _pBLEScan->setWindow(449);
+    _pBLEScan->setInterval(500);			// Use the more conservative values
+    _pBLEScan->setWindow(100);
+    _pBLEScan->setMaxResults(0);			// No limit on results
+    _pBLEScan->setDuplicateFilter(false);	// Allow duplicates for better detection
+
 
     if (_debug) Serial.println("Starting BLE scan...");
 
@@ -218,6 +225,12 @@ bool AcaiaArduinoBLE::updateConnection() {
 
     switch (_connectionState) {
         case SCANNING:
+            // Clear scan results every 30 seconds during long scans to prevent memory buildup
+            if (millis() - _lastScanClear > 30000) {
+                clearScanResults();
+                _lastScanClear = millis();
+            }
+
             // Reduced timeout for scanning - 15 seconds instead of 30
             if (millis() - _connectionStartTime > 15000) {
                 if (_debug) Serial.println("Scan timeout - no scales found");
@@ -515,6 +528,9 @@ bool AcaiaArduinoBLE::updateConnection() {
                         Serial.println(")...");
                     }
 
+                    // Clear any accumulated scan results before restart
+                    clearScanResults();
+
                     // More aggressive cleanup after multiple failures
                     if (_connectionAttempts > 8) {
                         if (_debug) Serial.println("Multiple failures - performing deep cleanup");
@@ -542,11 +558,14 @@ bool AcaiaArduinoBLE::updateConnection() {
 
                         // Recreate scan object
                         _pBLEScan = NimBLEDevice::getScan();
+
                         if (_pBLEScan) {
-                            _pBLEScan->setScanCallbacks(_pAdvertisedDeviceCallbacks);
+                            _pBLEScan->setScanCallbacks(_pAdvertisedDeviceCallbacks, true);
                             _pBLEScan->setActiveScan(true);
-                            _pBLEScan->setInterval(1349);
-                            _pBLEScan->setWindow(449);
+                            _pBLEScan->setInterval(500);
+                            _pBLEScan->setWindow(100);
+                            _pBLEScan->setMaxResults(0);
+                            _pBLEScan->setDuplicateFilter(false);
                         }
 
                         // Reset attempt counter after deep cleanup
@@ -607,7 +626,7 @@ bool AcaiaArduinoBLE::tare() {
         uint8_t cmd[7] = {0x03, 0x0F, decent_scale_tare_counter, 0x00, 0x00, 0x00, 0x00};
         cmd[6] = 0x0F ^ decent_scale_tare_counter; // XOR checksum
 
-        success = _pWriteCharacteristic->writeValue(cmd, 7, false);
+        success = _pWriteCharacteristic->writeValue(cmd, sizeof(cmd), false);
 
         if (_debug) {
             Serial.print("Decent Scale tare command sent: ");
@@ -616,10 +635,10 @@ bool AcaiaArduinoBLE::tare() {
     }
     else {
         if (_type == GENERIC) {
-            success = _pWriteCharacteristic->writeValue(TARE_GENERIC, 6, false);
+            success = _pWriteCharacteristic->writeValue(TARE_GENERIC, sizeof(TARE_GENERIC), false);
         }
         else {
-            success = _pWriteCharacteristic->writeValue(TARE_ACAIA, 6, false);
+            success = _pWriteCharacteristic->writeValue(TARE_ACAIA, sizeof(TARE_ACAIA), false);
         }
 
         if (_debug) {
@@ -637,13 +656,13 @@ bool AcaiaArduinoBLE::startTimer() const {
     bool success = false;
 
     if (_type == DECENT) {
-        success = _pWriteCharacteristic->writeValue(START_TIMER_DECENT, 7, false);
+        success = _pWriteCharacteristic->writeValue(START_TIMER_DECENT, sizeof(START_TIMER_DECENT), false);
     }
     else if (_type == GENERIC) {
-        success = _pWriteCharacteristic->writeValue(START_TIMER_GENERIC, 6, false);
+        success = _pWriteCharacteristic->writeValue(START_TIMER_GENERIC, sizeof(START_TIMER_GENERIC), false);
     }
     else {
-        success = _pWriteCharacteristic->writeValue(START_TIMER, 7, false);
+        success = _pWriteCharacteristic->writeValue(START_TIMER, sizeof(START_TIMER), false);
     }
 
     if (_debug) {
@@ -660,13 +679,13 @@ bool AcaiaArduinoBLE::stopTimer() const {
     bool success = false;
 
     if (_type == DECENT) {
-        success = _pWriteCharacteristic->writeValue(STOP_TIMER_DECENT, 7, false);
+        success = _pWriteCharacteristic->writeValue(STOP_TIMER_DECENT, sizeof(STOP_TIMER_DECENT), false);
     }
     else if (_type == GENERIC) {
-        success = _pWriteCharacteristic->writeValue(STOP_TIMER_GENERIC, 6, false);
+        success = _pWriteCharacteristic->writeValue(STOP_TIMER_GENERIC, sizeof(STOP_TIMER_GENERIC), false);
     }
     else {
-        success = _pWriteCharacteristic->writeValue(STOP_TIMER, 7, false);
+        success = _pWriteCharacteristic->writeValue(STOP_TIMER, sizeof(STOP_TIMER), false);
     }
 
     if (_debug) {
@@ -683,13 +702,13 @@ bool AcaiaArduinoBLE::resetTimer() const {
     bool success = false;
 
     if (_type == DECENT) {
-        success = _pWriteCharacteristic->writeValue(RESET_TIMER_DECENT, 7, false);
+        success = _pWriteCharacteristic->writeValue(RESET_TIMER_DECENT, sizeof(RESET_TIMER_DECENT), false);
     }
     else if (_type == GENERIC) {
-        success = _pWriteCharacteristic->writeValue(RESET_TIMER_GENERIC, 6, false);
+        success = _pWriteCharacteristic->writeValue(RESET_TIMER_GENERIC, sizeof(RESET_TIMER_GENERIC), false);
     }
     else {
-        success = _pWriteCharacteristic->writeValue(RESET_TIMER, 7, false);
+        success = _pWriteCharacteristic->writeValue(RESET_TIMER, sizeof(RESET_TIMER), false);
     }
 
     if (_debug) {
@@ -703,7 +722,7 @@ bool AcaiaArduinoBLE::resetTimer() const {
 bool AcaiaArduinoBLE::heartbeat() {
     if (!_connected || !_pWriteCharacteristic) return false;
 
-    const bool success = _pWriteCharacteristic->writeValue(HEARTBEAT, 7, false);
+    const bool success = _pWriteCharacteristic->writeValue(HEARTBEAT, sizeof(HEARTBEAT), false);
 
     if (success) {
         _lastHeartBeat = millis();
@@ -909,6 +928,13 @@ void AcaiaArduinoBLE::notifyCallback(const uint8_t* pData, size_t length) {
                 Serial.println("g - flagged as new weight available");
             }
         }
+    }
+}
+
+void AcaiaArduinoBLE::clearScanResults() {
+    if (_pBLEScan) {
+        _pBLEScan->clearResults();
+        if (_debug) Serial.println("Cleared BLE scan results to free memory");
     }
 }
 
