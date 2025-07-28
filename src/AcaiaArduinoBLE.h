@@ -34,10 +34,10 @@
 #include <utility>
 
 enum scale_type {
-    OLD,     // Lunar (pre-2021)
-    NEW,     // Lunar (2021), Pyxis
+    OLD, // Lunar (pre-2021)
+    NEW, // Lunar (2021), Pyxis
     GENERIC, // Felicita Arc, etc
-    DECENT   // Decent Scale + EspressiScale
+    DECENT // Decent Scale + EspressiScale
 };
 
 enum ConnectionState {
@@ -52,24 +52,30 @@ enum ConnectionState {
 
 class MyAdvertisedDeviceCallbacks : public NimBLEScanCallbacks {
     public:
-        void onResult(const NimBLEAdvertisedDevice* advertisedDevice) override;
-        void onScanEnd(const NimBLEScanResults& scanResults, int reason) override;
+        void onResult(const NimBLEAdvertisedDevice *advertisedDevice) override;
+
+        void onScanEnd(const NimBLEScanResults &scanResults, int reason) override;
 
         [[nodiscard]] bool hasFoundDevice() const {
             return _deviceFound;
         }
+
         [[nodiscard]] NimBLEAddress getFoundDeviceAddress() const {
             return _foundDeviceAddress;
         }
+
         [[nodiscard]] String getFoundDeviceName() const {
             return _foundDeviceName;
         }
+
         void clearFoundDevice() {
             _deviceFound = false;
         }
+
         void setTargetMac(String mac) {
             _targetMac = std::move(mac);
         }
+
         void setDebug(const bool debug) {
             _debug = debug;
         }
@@ -80,13 +86,16 @@ class MyAdvertisedDeviceCallbacks : public NimBLEScanCallbacks {
         String _foundDeviceName;
         String _targetMac = "";
         bool _debug = false;
-        static bool isSupportedScale(const String& name);
+
+        static bool isSupportedScale(const String &name);
 };
 
 class MyClientCallback : public NimBLEClientCallbacks {
     public:
-        void onConnect(NimBLEClient* pclient) override;
-        void onDisconnect(NimBLEClient* pclient, int reason) override;
+        void onConnect(NimBLEClient *pclient) override;
+
+        void onDisconnect(NimBLEClient *pclient, int reason) override;
+
         void setDebug(const bool debug) {
             _debug = debug;
         }
@@ -98,8 +107,10 @@ class MyClientCallback : public NimBLEClientCallbacks {
 class AcaiaArduinoBLE {
     public:
         explicit AcaiaArduinoBLE(bool debug);
+
         ~AcaiaArduinoBLE();
-        bool init(const String& = "");
+
+        bool init(const String & = "");
         bool updateConnection();
         [[nodiscard]] bool isConnecting() const;
         void tare();
@@ -113,21 +124,22 @@ class AcaiaArduinoBLE {
         bool newWeightAvailable();
 
     private:
-        static void staticNotifyCallback(NimBLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify);
-        void notifyCallback(const uint8_t* pData, size_t length);
+        static void staticNotifyCallback(NimBLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *pData,
+                                         size_t length, bool isNotify);
+
+        void notifyCallback(const uint8_t *pData, size_t length);
         void cleanup();
         void clearScanResults();
 
         // Debug functions
         void printData(const uint8_t data[], size_t length);
-
         float _currentWeight;
-        NimBLEClient* _pClient;
-        NimBLERemoteCharacteristic* _pWriteCharacteristic;
-        NimBLERemoteCharacteristic* _pReadCharacteristic;
-        NimBLEScan* _pBLEScan;
-        MyAdvertisedDeviceCallbacks* _pAdvertisedDeviceCallbacks;
-        MyClientCallback* _pClientCallback;
+        NimBLEClient *_pClient;
+        NimBLERemoteCharacteristic *_pWriteCharacteristic;
+        NimBLERemoteCharacteristic *_pReadCharacteristic;
+        NimBLEScan *_pBLEScan;
+        MyAdvertisedDeviceCallbacks *_pAdvertisedDeviceCallbacks;
+        MyClientCallback *_pClientCallback;
 
         unsigned long _lastHeartBeat;
         bool _connected;
@@ -146,5 +158,5 @@ class AcaiaArduinoBLE {
 
         int _connectionAttempts;
 
-        static AcaiaArduinoBLE* _instance; // For static callback
+        static AcaiaArduinoBLE *_instance; // For static callback
 };

@@ -11,9 +11,16 @@
 
 #include <utility>
 
-const byte IDENTIFY[20] = {0xef, 0xdd, 0x0b, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x9a, 0x6d};
+const byte IDENTIFY[20] = {
+    0xef, 0xdd, 0x0b, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x9a,
+    0x6d
+};
+
 const byte HEARTBEAT[7] = {0xef, 0xdd, 0x00, 0x02, 0x00, 0x02, 0x00};
-const byte NOTIFICATION_REQUEST[14] = {0xef, 0xdd, 0x0c, 0x09, 0x00, 0x01, 0x01, 0x02, 0x02, 0x05, 0x03, 0x04, 0x15, 0x06};
+const byte NOTIFICATION_REQUEST[14] = {
+    0xef, 0xdd, 0x0c, 0x09, 0x00, 0x01, 0x01, 0x02, 0x02, 0x05, 0x03, 0x04, 0x15, 0x06
+};
+
 const byte START_TIMER[7] = {0xef, 0xdd, 0x0d, 0x00, 0x00, 0x00, 0x00};
 const byte STOP_TIMER[7] = {0xef, 0xdd, 0x0d, 0x00, 0x02, 0x00, 0x02};
 const byte RESET_TIMER[7] = {0xef, 0xdd, 0x0d, 0x00, 0x01, 0x00, 0x01};
@@ -27,10 +34,10 @@ const byte STOP_TIMER_DECENT[7] = {0x03, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x0b};
 const byte RESET_TIMER_DECENT[7] = {0x03, 0x0b, 0x02, 0x00, 0x00, 0x00, 0x09};
 
 // Static instance for callback
-AcaiaArduinoBLE* AcaiaArduinoBLE::_instance = nullptr;
+AcaiaArduinoBLE *AcaiaArduinoBLE::_instance = nullptr;
 
 // Callback implementations
-void MyAdvertisedDeviceCallbacks::onResult(const NimBLEAdvertisedDevice* advertisedDevice) {
+void MyAdvertisedDeviceCallbacks::onResult(const NimBLEAdvertisedDevice *advertisedDevice) {
     if (_debug) {
         Serial.print("Found ");
         Serial.print(advertisedDevice->getAddress().toString().c_str());
@@ -55,27 +62,29 @@ void MyAdvertisedDeviceCallbacks::onResult(const NimBLEAdvertisedDevice* adverti
     }
 }
 
-void MyAdvertisedDeviceCallbacks::onScanEnd(const NimBLEScanResults& scanResults, const int reason) {
+void MyAdvertisedDeviceCallbacks::onScanEnd(const NimBLEScanResults &scanResults, const int reason) {
     if (_debug) {
         Serial.print("Scan ended, reason: ");
         Serial.println(reason);
     }
 }
 
-bool MyAdvertisedDeviceCallbacks::isSupportedScale(const String& name) {
+bool MyAdvertisedDeviceCallbacks::isSupportedScale(const String &name) {
     String normalizedName = name;
     normalizedName.trim();
     normalizedName.toUpperCase();
 
-    return normalizedName.startsWith("ACAIA") || normalizedName.startsWith("LUNAR") || normalizedName.startsWith("PYXIS") || normalizedName.startsWith("PEARL") || normalizedName.startsWith("CINCO") ||
-           normalizedName.startsWith("PROCH") || normalizedName.startsWith("BOOKOO") || normalizedName.startsWith("DECENT") || normalizedName.startsWith("ESPRESSISCALE");
+    return normalizedName.startsWith("ACAIA") || normalizedName.startsWith("LUNAR") || normalizedName.
+           startsWith("PYXIS") || normalizedName.startsWith("PEARL") || normalizedName.startsWith("CINCO") ||
+           normalizedName.startsWith("PROCH") || normalizedName.startsWith("BOOKOO") || normalizedName.
+           startsWith("DECENT") || normalizedName.startsWith("ESPRESSISCALE");
 }
 
-void MyClientCallback::onConnect(NimBLEClient* pclient) {
+void MyClientCallback::onConnect(NimBLEClient *pclient) {
     if (_debug) Serial.println("Client connected");
 }
 
-void MyClientCallback::onDisconnect(NimBLEClient* pclient, const int reason) {
+void MyClientCallback::onDisconnect(NimBLEClient *pclient, const int reason) {
     if (_debug) {
         Serial.print("Client disconnected, reason: ");
         Serial.println(reason);
@@ -159,7 +168,7 @@ void AcaiaArduinoBLE::cleanup() {
     }
 }
 
-bool AcaiaArduinoBLE::init(const String& mac) {
+bool AcaiaArduinoBLE::init(const String &mac) {
     if (_debug) Serial.println("Initializing NimBLE...");
 
     // Clean up any existing state first
@@ -200,15 +209,16 @@ bool AcaiaArduinoBLE::init(const String& mac) {
     // CRITICAL: Set true to prevent storing unwanted devices and avoid memory leaks
     _pBLEScan->setScanCallbacks(_pAdvertisedDeviceCallbacks, true);
     _pBLEScan->setActiveScan(true);
-    _pBLEScan->setInterval(500);			// Use the more conservative values
+    _pBLEScan->setInterval(500); // Use the more conservative values
     _pBLEScan->setWindow(100);
-    _pBLEScan->setMaxResults(0);			// No limit on results
-    _pBLEScan->setDuplicateFilter(false);	// Allow duplicates for better detection
+    _pBLEScan->setMaxResults(0); // No limit on results
+    _pBLEScan->setDuplicateFilter(false); // Allow duplicates for better detection
 
 
     if (_debug) Serial.println("Starting BLE scan...");
 
-    if (!_pBLEScan->start(0)) { // 0 = scan indefinitely
+    if (!_pBLEScan->start(0)) {
+        // 0 = scan indefinitely
         if (_debug) Serial.println("Failed to start BLE scan");
         return false;
     }
@@ -247,170 +257,166 @@ bool AcaiaArduinoBLE::updateConnection() {
 
             break;
 
-        case CONNECTING:
-            {
-                // Reduced timeout for connecting - 8 seconds instead of 10
-                if (millis() - _connectionStartTime > 8000) {
-                    if (_debug) Serial.println("Connection timeout");
-                    _connectionState = FAILED;
-                    _connectionStartTime = millis();
-                    break;
+        case CONNECTING: {
+            // Reduced timeout for connecting - 8 seconds instead of 10
+            if (millis() - _connectionStartTime > 8000) {
+                if (_debug) Serial.println("Connection timeout");
+                _connectionState = FAILED;
+                _connectionStartTime = millis();
+                break;
+            }
+
+            if (_debug) Serial.println("Connecting...");
+
+            // Clean up any existing client first
+            if (_pClient) {
+                if (_pClient->isConnected()) {
+                    _pClient->disconnect();
                 }
+                delay(200);
+                _pClient = nullptr;
+            }
 
-                if (_debug) Serial.println("Connecting...");
+            // Create client
+            _pClient = NimBLEDevice::createClient();
 
-                // Clean up any existing client first
+            if (!_pClient) {
+                if (_debug) Serial.println("Failed to create client - will retry");
+                _connectionState = FAILED;
+                _connectionStartTime = millis();
+                break;
+            }
+
+            // Set client callbacks
+            if (_pClientCallback) {
+                _pClient->setClientCallbacks(_pClientCallback, false);
+            }
+
+            // Try connection with explicit timeout
+            NimBLEAddress scaleAddress = _pAdvertisedDeviceCallbacks->getFoundDeviceAddress();
+
+            if (_debug) {
+                Serial.print("Attempting connection to: ");
+                Serial.println(scaleAddress.toString().c_str());
+            }
+
+            // Use blocking connect with timeout
+            bool connected = false;
+
+            try {
+                connected = _pClient->connect(scaleAddress, false); // false = not delete on disconnect
+            } catch (...) {
+                if (_debug) Serial.println("Exception during connection attempt");
+                connected = false;
+            }
+
+            if (connected && _pClient->isConnected()) {
+                if (_debug) Serial.println("Connected!");
+                _connectionState = DISCOVERING;
+                _connectionStartTime = millis();
+            } else {
+                if (_debug) Serial.println("Failed to connect!");
+
+                // Connection failed - properly clean up
                 if (_pClient) {
-                    if (_pClient->isConnected()) {
-                        _pClient->disconnect();
-                    }
-                    delay(200);
                     _pClient = nullptr;
                 }
 
-                // Create client
-                _pClient = NimBLEDevice::createClient();
+                _connectionState = FAILED;
+                _connectionStartTime = millis();
+            }
 
-                if (!_pClient) {
-                    if (_debug) Serial.println("Failed to create client - will retry");
-                    _connectionState = FAILED;
-                    _connectionStartTime = millis();
-                    break;
-                }
+            break;
+        }
 
-                // Set client callbacks
-                if (_pClientCallback) {
-                    _pClient->setClientCallbacks(_pClientCallback, false);
-                }
-
-                // Try connection with explicit timeout
-                NimBLEAddress scaleAddress = _pAdvertisedDeviceCallbacks->getFoundDeviceAddress();
-
-                if (_debug) {
-                    Serial.print("Attempting connection to: ");
-                    Serial.println(scaleAddress.toString().c_str());
-                }
-
-                // Use blocking connect with timeout
-                bool connected = false;
-
-                try {
-                    connected = _pClient->connect(scaleAddress, false); // false = not delete on disconnect
-                } catch (...) {
-                    if (_debug) Serial.println("Exception during connection attempt");
-                    connected = false;
-                }
-
-                if (connected && _pClient->isConnected()) {
-                    if (_debug) Serial.println("Connected!");
-                    _connectionState = DISCOVERING;
-                    _connectionStartTime = millis();
-                }
-                else {
-                    if (_debug) Serial.println("Failed to connect!");
-
-                    // Connection failed - properly clean up
-                    if (_pClient) {
-                        _pClient = nullptr;
-                    }
-
-                    _connectionState = FAILED;
-                    _connectionStartTime = millis();
-                }
-
+        case DISCOVERING: {
+            // Reduced timeout for discovery - 3 seconds instead of 5
+            if (millis() - _connectionStartTime > 3000) {
+                if (_debug) Serial.println("Service discovery timeout");
+                _connectionState = FAILED;
+                _connectionStartTime = millis();
                 break;
             }
 
-        case DISCOVERING:
-            {
-                // Reduced timeout for discovery - 3 seconds instead of 5
-                if (millis() - _connectionStartTime > 3000) {
-                    if (_debug) Serial.println("Service discovery timeout");
-                    _connectionState = FAILED;
-                    _connectionStartTime = millis();
-                    break;
-                }
+            if (_debug) Serial.println("Discovering services...");
 
-                if (_debug) Serial.println("Discovering services...");
+            const std::vector<NimBLERemoteService *> services = _pClient->getServices(true);
 
-                const std::vector<NimBLERemoteService*> services = _pClient->getServices(true);
-
-                if (_debug) {
-                    Serial.print("Found ");
-                    Serial.print(services.size());
-                    Serial.println(" services");
-                }
-
-                // Try different service UUIDs to determine scale type
-                const NimBLERemoteService* pService = nullptr;
-
-                // Try OLD acaia version
-                for (const auto service : services) {
-                    std::vector<NimBLERemoteCharacteristic*> chars = service->getCharacteristics(true);
-
-                    for (const auto ch : chars) {
-                        if (ch->getUUID().equals(NimBLEUUID(READ_CHAR_OLD_VERSION))) {
-                            pService = service;
-                            _type = OLD;
-                            _pWriteCharacteristic = ch;
-                            _pReadCharacteristic = ch; // Same characteristic for old version
-                            if (_debug) Serial.println("Old version Acaia detected");
-                            break;
-                        }
-                    }
-
-                    if (pService) break;
-                }
-
-                // Try NEW acaia version
-                if (!pService) {
-                    pService = _pClient->getService(NimBLEUUID(WRITE_CHAR_NEW_VERSION));
-
-                    if (pService) {
-                        _type = NEW;
-                        _pWriteCharacteristic = pService->getCharacteristic(NimBLEUUID(WRITE_CHAR_NEW_VERSION));
-                        _pReadCharacteristic = pService->getCharacteristic(NimBLEUUID(READ_CHAR_NEW_VERSION));
-                        if (_debug) Serial.println("New version Acaia detected");
-                    }
-                }
-
-                // Try GENERIC scale
-                if (!pService) {
-                    pService = _pClient->getService(NimBLEUUID(SUUID_GENERIC));
-
-                    if (pService) {
-                        _type = GENERIC;
-                        _pWriteCharacteristic = pService->getCharacteristic(NimBLEUUID(WRITE_CHAR_GENERIC));
-                        _pReadCharacteristic = pService->getCharacteristic(NimBLEUUID(READ_CHAR_GENERIC));
-                        if (_debug) Serial.println("Generic scale detected");
-                    }
-                }
-
-                // Try DECENT/EspressiScale
-                if (!pService) {
-                    pService = _pClient->getService(NimBLEUUID(SUUID_DECENTSCALE));
-
-                    if (pService) {
-                        _type = DECENT;
-                        _pWriteCharacteristic = pService->getCharacteristic(NimBLEUUID(WRITE_CHAR_DECENT));
-                        _pReadCharacteristic = pService->getCharacteristic(NimBLEUUID(READ_CHAR_DECENT));
-                        if (_debug) Serial.println("Decent/EspressiScale detected");
-                    }
-                }
-
-                if (pService && _pWriteCharacteristic && _pReadCharacteristic) {
-                    if (_debug) Serial.println("Service and characteristics found");
-                    _connectionState = CONFIGURING;
-                    _connectionStartTime = millis(); // Reset timeout for configuration phase
-                }
-                else {
-                    if (_debug) Serial.println("Failed to find service or characteristics");
-                    _connectionState = FAILED;
-                    _connectionStartTime = millis();
-                }
-
-                break;
+            if (_debug) {
+                Serial.print("Found ");
+                Serial.print(services.size());
+                Serial.println(" services");
             }
+
+            // Try different service UUIDs to determine scale type
+            const NimBLERemoteService *pService = nullptr;
+
+            // Try OLD acaia version
+            for (const auto service: services) {
+                std::vector<NimBLERemoteCharacteristic *> chars = service->getCharacteristics(true);
+
+                for (const auto ch: chars) {
+                    if (ch->getUUID().equals(NimBLEUUID(READ_CHAR_OLD_VERSION))) {
+                        pService = service;
+                        _type = OLD;
+                        _pWriteCharacteristic = ch;
+                        _pReadCharacteristic = ch; // Same characteristic for old version
+                        if (_debug) Serial.println("Old version Acaia detected");
+                        break;
+                    }
+                }
+
+                if (pService) break;
+            }
+
+            // Try NEW acaia version
+            if (!pService) {
+                pService = _pClient->getService(NimBLEUUID(WRITE_CHAR_NEW_VERSION));
+
+                if (pService) {
+                    _type = NEW;
+                    _pWriteCharacteristic = pService->getCharacteristic(NimBLEUUID(WRITE_CHAR_NEW_VERSION));
+                    _pReadCharacteristic = pService->getCharacteristic(NimBLEUUID(READ_CHAR_NEW_VERSION));
+                    if (_debug) Serial.println("New version Acaia detected");
+                }
+            }
+
+            // Try GENERIC scale
+            if (!pService) {
+                pService = _pClient->getService(NimBLEUUID(SUUID_GENERIC));
+
+                if (pService) {
+                    _type = GENERIC;
+                    _pWriteCharacteristic = pService->getCharacteristic(NimBLEUUID(WRITE_CHAR_GENERIC));
+                    _pReadCharacteristic = pService->getCharacteristic(NimBLEUUID(READ_CHAR_GENERIC));
+                    if (_debug) Serial.println("Generic scale detected");
+                }
+            }
+
+            // Try DECENT/EspressiScale
+            if (!pService) {
+                pService = _pClient->getService(NimBLEUUID(SUUID_DECENTSCALE));
+
+                if (pService) {
+                    _type = DECENT;
+                    _pWriteCharacteristic = pService->getCharacteristic(NimBLEUUID(WRITE_CHAR_DECENT));
+                    _pReadCharacteristic = pService->getCharacteristic(NimBLEUUID(READ_CHAR_DECENT));
+                    if (_debug) Serial.println("Decent/EspressiScale detected");
+                }
+            }
+
+            if (pService && _pWriteCharacteristic && _pReadCharacteristic) {
+                if (_debug) Serial.println("Service and characteristics found");
+                _connectionState = CONFIGURING;
+                _connectionStartTime = millis(); // Reset timeout for configuration phase
+            } else {
+                if (_debug) Serial.println("Failed to find service or characteristics");
+                _connectionState = FAILED;
+                _connectionStartTime = millis();
+            }
+
+            break;
+        }
 
         case CONFIGURING:
             // Reduced timeout for configuring - 3 seconds instead of 5
@@ -432,8 +438,7 @@ bool AcaiaArduinoBLE::updateConnection() {
                     break;
                 }
                 if (_debug) Serial.println("Registered for notifications");
-            }
-            else {
+            } else {
                 if (_debug) Serial.println("Cannot register for notifications");
                 _connectionState = FAILED;
                 _connectionStartTime = millis();
@@ -495,12 +500,12 @@ bool AcaiaArduinoBLE::updateConnection() {
             // Send periodic heartbeat for OLD scales to keep connection alive
             if (_type == OLD) {
                 static unsigned long lastHeartbeat = 0;
-                if (millis() - lastHeartbeat > 4000) { // Send heartbeat every 4 seconds
+                if (millis() - lastHeartbeat > 4000) {
+                    // Send heartbeat every 4 seconds
                     if (_pWriteCharacteristic) {
                         if (_pWriteCharacteristic->writeValue(HEARTBEAT, 20, false)) {
                             if (_debug) Serial.println("Heartbeat sent: success");
-                        }
-                        else {
+                        } else {
                             if (_debug) Serial.println("Heartbeat sent: failed");
                         }
                     }
@@ -511,93 +516,92 @@ bool AcaiaArduinoBLE::updateConnection() {
 
             break;
 
-        case FAILED:
-            {
-                _connectionAttempts++;
+        case FAILED: {
+            _connectionAttempts++;
 
-                // More aggressive reconnection timing
-                unsigned long backoffTime = 1000;                 // Start with 1 second
-                if (_connectionAttempts > 3) backoffTime = 2000;  // 2s after 3 attempts
-                if (_connectionAttempts > 6) backoffTime = 3000;  // 3s after 6 attempts
-                if (_connectionAttempts > 10) backoffTime = 5000; // 5s after 10 attempts
+            // More aggressive reconnection timing
+            unsigned long backoffTime = 1000; // Start with 1 second
+            if (_connectionAttempts > 3) backoffTime = 2000; // 2s after 3 attempts
+            if (_connectionAttempts > 6) backoffTime = 3000; // 3s after 6 attempts
+            if (_connectionAttempts > 10) backoffTime = 5000; // 5s after 10 attempts
 
-                if (millis() - _connectionStartTime > backoffTime) {
-                    if (_debug) {
-                        Serial.print("Auto-reconnecting (attempt ");
-                        Serial.print(_connectionAttempts);
-                        Serial.println(")...");
-                    }
+            if (millis() - _connectionStartTime > backoffTime) {
+                if (_debug) {
+                    Serial.print("Auto-reconnecting (attempt ");
+                    Serial.print(_connectionAttempts);
+                    Serial.println(")...");
+                }
 
-                    // Clear any accumulated scan results before restart
-                    clearScanResults();
+                // Clear any accumulated scan results before restart
+                clearScanResults();
 
-                    // More aggressive cleanup after multiple failures
-                    if (_connectionAttempts > 8) {
-                        if (_debug) Serial.println("Multiple failures - performing deep cleanup");
+                // More aggressive cleanup after multiple failures
+                if (_connectionAttempts > 8) {
+                    if (_debug) Serial.println("Multiple failures - performing deep cleanup");
 
-                        // Stop scan first
-                        if (_pBLEScan) {
-                            _pBLEScan->stop();
-                            delay(100);
-                        }
-
-                        // Clean up client
-                        if (_pClient) {
-                            if (_pClient->isConnected()) {
-                                _pClient->disconnect();
-                            }
-                            delay(100);
-                            _pClient = nullptr;
-                        }
-
-                        // Reset NimBLE stack
-                        NimBLEDevice::deinit(true);
-                        delay(500);
-                        NimBLEDevice::init("");
-                        delay(200);
-
-                        // Recreate scan object
-                        _pBLEScan = NimBLEDevice::getScan();
-
-                        if (_pBLEScan) {
-                            _pBLEScan->setScanCallbacks(_pAdvertisedDeviceCallbacks, true);
-                            _pBLEScan->setActiveScan(true);
-                            _pBLEScan->setInterval(500);
-                            _pBLEScan->setWindow(100);
-                            _pBLEScan->setMaxResults(0);
-                            _pBLEScan->setDuplicateFilter(false);
-                        }
-
-                        // Reset attempt counter after deep cleanup
-                        _connectionAttempts = 0;
-                    }
-                    else {
-                        // Light cleanup for early failures
-                        if (_pClient) {
-                            if (_pClient->isConnected()) {
-                                _pClient->disconnect();
-                            }
-                            delay(100);
-                            _pClient = nullptr;
-                        }
-                    }
-
-                    _pAdvertisedDeviceCallbacks->clearFoundDevice();
-
-                    _connectionState = SCANNING;
-                    _connectionStartTime = millis();
-                    _connected = false;
-
-                    // Restart scan
+                    // Stop scan first
                     if (_pBLEScan) {
-                        _pBLEScan->start(0);
+                        _pBLEScan->stop();
+                        delay(100);
+                    }
+
+                    // Clean up client
+                    if (_pClient) {
+                        if (_pClient->isConnected()) {
+                            _pClient->disconnect();
+                        }
+                        delay(100);
+                        _pClient = nullptr;
+                    }
+
+                    // Reset NimBLE stack
+                    NimBLEDevice::deinit(true);
+                    delay(500);
+                    NimBLEDevice::init("");
+                    delay(200);
+
+                    // Recreate scan object
+                    _pBLEScan = NimBLEDevice::getScan();
+
+                    if (_pBLEScan) {
+                        _pBLEScan->setScanCallbacks(_pAdvertisedDeviceCallbacks, true);
+                        _pBLEScan->setActiveScan(true);
+                        _pBLEScan->setInterval(500);
+                        _pBLEScan->setWindow(100);
+                        _pBLEScan->setMaxResults(0);
+                        _pBLEScan->setDuplicateFilter(false);
+                    }
+
+                    // Reset attempt counter after deep cleanup
+                    _connectionAttempts = 0;
+                } else {
+                    // Light cleanup for early failures
+                    if (_pClient) {
+                        if (_pClient->isConnected()) {
+                            _pClient->disconnect();
+                        }
+                        delay(100);
+                        _pClient = nullptr;
                     }
                 }
-                return false;
+
+                _pAdvertisedDeviceCallbacks->clearFoundDevice();
+
+                _connectionState = SCANNING;
+                _connectionStartTime = millis();
+                _connected = false;
+
+                // Restart scan
+                if (_pBLEScan) {
+                    _pBLEScan->start(0);
+                }
             }
+            return false;
+        }
 
         case IDLE:
-            if (millis() - _connectionStartTime > 500) { // Quick transition to scanning
+            if (millis() - _connectionStartTime > 500) {
+                // Quick transition to scanning
                 _connectionState = SCANNING;
                 _connectionStartTime = millis();
             }
@@ -611,7 +615,8 @@ bool AcaiaArduinoBLE::updateConnection() {
 }
 
 bool AcaiaArduinoBLE::isConnecting() const {
-    return _connectionState == SCANNING || _connectionState == CONNECTING || _connectionState == DISCOVERING || _connectionState == CONFIGURING;
+    return _connectionState == SCANNING || _connectionState == CONNECTING || _connectionState == DISCOVERING ||
+           _connectionState == CONFIGURING;
 }
 
 void AcaiaArduinoBLE::tare() {
@@ -629,12 +634,10 @@ void AcaiaArduinoBLE::tare() {
         if (_debug) {
             Serial.print("Decent Scale tare command sent");
         }
-    }
-    else {
+    } else {
         if (_type == GENERIC) {
             _pWriteCharacteristic->writeValue(TARE_GENERIC, sizeof(TARE_GENERIC), false);
-        }
-        else {
+        } else {
             _pWriteCharacteristic->writeValue(TARE_ACAIA, sizeof(TARE_ACAIA), false);
         }
 
@@ -649,11 +652,9 @@ void AcaiaArduinoBLE::startTimer() const {
 
     if (_type == DECENT) {
         _pWriteCharacteristic->writeValue(START_TIMER_DECENT, sizeof(START_TIMER_DECENT), false);
-    }
-    else if (_type == GENERIC) {
+    } else if (_type == GENERIC) {
         _pWriteCharacteristic->writeValue(START_TIMER_GENERIC, sizeof(START_TIMER_GENERIC), false);
-    }
-    else {
+    } else {
         _pWriteCharacteristic->writeValue(START_TIMER, sizeof(START_TIMER), false);
     }
 
@@ -667,11 +668,9 @@ void AcaiaArduinoBLE::stopTimer() const {
 
     if (_type == DECENT) {
         _pWriteCharacteristic->writeValue(STOP_TIMER_DECENT, sizeof(STOP_TIMER_DECENT), false);
-    }
-    else if (_type == GENERIC) {
+    } else if (_type == GENERIC) {
         _pWriteCharacteristic->writeValue(STOP_TIMER_GENERIC, sizeof(STOP_TIMER_GENERIC), false);
-    }
-    else {
+    } else {
         _pWriteCharacteristic->writeValue(STOP_TIMER, sizeof(STOP_TIMER), false);
     }
 
@@ -685,11 +684,9 @@ void AcaiaArduinoBLE::resetTimer() const {
 
     if (_type == DECENT) {
         _pWriteCharacteristic->writeValue(RESET_TIMER_DECENT, sizeof(RESET_TIMER_DECENT), false);
-    }
-    else if (_type == GENERIC) {
+    } else if (_type == GENERIC) {
         _pWriteCharacteristic->writeValue(RESET_TIMER_GENERIC, sizeof(RESET_TIMER_GENERIC), false);
-    }
-    else {
+    } else {
         _pWriteCharacteristic->writeValue(RESET_TIMER, sizeof(RESET_TIMER), false);
     }
 
@@ -746,16 +743,16 @@ bool AcaiaArduinoBLE::newWeightAvailable() {
     return false;
 }
 
-void AcaiaArduinoBLE::staticNotifyCallback(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
+void AcaiaArduinoBLE::staticNotifyCallback(NimBLERemoteCharacteristic *pRemoteCharacteristic, uint8_t *pData,
+                                           size_t length, bool isNotify) {
     if (_instance) {
         _instance->notifyCallback(pData, length);
-    }
-    else {
+    } else {
         Serial.println("ERROR: _instance is null! Cannot process notification.");
     }
 }
 
-void AcaiaArduinoBLE::notifyCallback(const uint8_t* pData, size_t length) {
+void AcaiaArduinoBLE::notifyCallback(const uint8_t *pData, size_t length) {
     if (_debug) {
         Serial.print("Processing notification, length: ");
         Serial.print(length);
@@ -793,22 +790,23 @@ void AcaiaArduinoBLE::notifyCallback(const uint8_t* pData, size_t length) {
                 Serial.print(", final weight: ");
                 Serial.println(_currentWeight);
             }
-        }
-        else if (((_type == NEW && (length == 13 || length == 17)) || (_type == OLD && length == 13)) && pData[4] == 0x05) {
+        } else if (((_type == NEW && (length == 13 || length == 17)) || (_type == OLD && length == 13)) && pData[4] ==
+                   0x05) {
             // Parse New style data packet
-            _currentWeight = (((pData[6] & 0xff) << 8) + (pData[5] & 0xff)) / pow(10, pData[9]) * ((pData[10] & 0x02) ? -1 : 1);
+            _currentWeight = (((pData[6] & 0xff) << 8) + (pData[5] & 0xff)) / pow(10, pData[9]) * (
+                                 (pData[10] & 0x02) ? -1 : 1);
             newWeightPacket = true;
 
             if (_debug) {
                 Serial.print("NEW scale weight: ");
                 Serial.println(_currentWeight);
             }
-        }
-        else if (_type == GENERIC && length == 20) {
+        } else if (_type == GENERIC && length == 20) {
             // Parse generic scale data packet
             _currentWeight = ((pData[7] << 16) | (pData[8] << 8) | pData[9]);
 
-            if (pData[6] == 45) { // Check if the value is negative
+            if (pData[6] == 45) {
+                // Check if the value is negative
                 _currentWeight = -_currentWeight;
             }
             _currentWeight = _currentWeight / 100;
@@ -818,8 +816,7 @@ void AcaiaArduinoBLE::notifyCallback(const uint8_t* pData, size_t length) {
                 Serial.print("GENERIC scale weight: ");
                 Serial.println(_currentWeight);
             }
-        }
-        else if (_type == DECENT) {
+        } else if (_type == DECENT) {
             if (_debug) Serial.println("Parsing DECENT/EspressiScale data");
 
             // EspressiScale/Decent scale data parsing
@@ -871,7 +868,7 @@ void AcaiaArduinoBLE::notifyCallback(const uint8_t* pData, size_t length) {
                         }
 
                         // Sanity check the weight value
-                        if (weight >= 0 && weight < 5000) {
+                        if (weight >= -5000 && weight < 5000) {
                             _currentWeight = weight;
                             newWeightPacket = true;
 
@@ -880,17 +877,14 @@ void AcaiaArduinoBLE::notifyCallback(const uint8_t* pData, size_t length) {
                                 Serial.println(_currentWeight);
                             }
                         }
-                    }
-                    else if (_debug) {
+                    } else if (_debug) {
                         Serial.print("Unknown command type: 0x");
                         Serial.println(cmdtype, HEX);
                     }
-                }
-                else if (_debug) {
+                } else if (_debug) {
                     Serial.println("Checksum mismatch - ignoring packet");
                 }
-            }
-            else if (_debug) {
+            } else if (_debug) {
                 Serial.print("Invalid packet format - length: ");
                 Serial.print(length);
                 Serial.print(", first byte: 0x");
