@@ -224,6 +224,7 @@ bool AcaiaArduinoBLE::init(const String &mac) {
     }
 
     if (_debug) Serial.println("Starting connection process...");
+
     return true;
 }
 
@@ -273,6 +274,7 @@ bool AcaiaArduinoBLE::updateConnection() {
                 if (_pClient->isConnected()) {
                     _pClient->disconnect();
                 }
+
                 delay(200);
                 _pClient = nullptr;
             }
@@ -305,7 +307,8 @@ bool AcaiaArduinoBLE::updateConnection() {
 
             try {
                 connected = _pClient->connect(scaleAddress, false); // false = not delete on disconnect
-            } catch (...) {
+            }
+            catch (...) {
                 if (_debug) Serial.println("Exception during connection attempt");
                 connected = false;
             }
@@ -314,7 +317,8 @@ bool AcaiaArduinoBLE::updateConnection() {
                 if (_debug) Serial.println("Connected!");
                 _connectionState = DISCOVERING;
                 _connectionStartTime = millis();
-            } else {
+            }
+            else {
                 if (_debug) Serial.println("Failed to connect!");
 
                 // Connection failed - properly clean up
@@ -409,7 +413,8 @@ bool AcaiaArduinoBLE::updateConnection() {
                 if (_debug) Serial.println("Service and characteristics found");
                 _connectionState = CONFIGURING;
                 _connectionStartTime = millis(); // Reset timeout for configuration phase
-            } else {
+            }
+            else {
                 if (_debug) Serial.println("Failed to find service or characteristics");
                 _connectionState = FAILED;
                 _connectionStartTime = millis();
@@ -438,7 +443,8 @@ bool AcaiaArduinoBLE::updateConnection() {
                     break;
                 }
                 if (_debug) Serial.println("Registered for notifications");
-            } else {
+            }
+            else {
                 if (_debug) Serial.println("Cannot register for notifications");
                 _connectionState = FAILED;
                 _connectionStartTime = millis();
@@ -505,7 +511,8 @@ bool AcaiaArduinoBLE::updateConnection() {
                     if (_pWriteCharacteristic) {
                         if (_pWriteCharacteristic->writeValue(HEARTBEAT, 20, false)) {
                             if (_debug) Serial.println("Heartbeat sent: success");
-                        } else {
+                        }
+                        else {
                             if (_debug) Serial.println("Heartbeat sent: failed");
                         }
                     }
@@ -550,6 +557,7 @@ bool AcaiaArduinoBLE::updateConnection() {
                         if (_pClient->isConnected()) {
                             _pClient->disconnect();
                         }
+
                         delay(100);
                         _pClient = nullptr;
                     }
@@ -574,7 +582,8 @@ bool AcaiaArduinoBLE::updateConnection() {
 
                     // Reset attempt counter after deep cleanup
                     _connectionAttempts = 0;
-                } else {
+                }
+                else {
                     // Light cleanup for early failures
                     if (_pClient) {
                         if (_pClient->isConnected()) {
@@ -634,10 +643,12 @@ void AcaiaArduinoBLE::tare() {
         if (_debug) {
             Serial.print("Decent Scale tare command sent");
         }
-    } else {
+    }
+    else {
         if (_type == GENERIC) {
             _pWriteCharacteristic->writeValue(TARE_GENERIC, sizeof(TARE_GENERIC), false);
-        } else {
+        }
+        else {
             _pWriteCharacteristic->writeValue(TARE_ACAIA, sizeof(TARE_ACAIA), false);
         }
 
@@ -652,9 +663,11 @@ void AcaiaArduinoBLE::startTimer() const {
 
     if (_type == DECENT) {
         _pWriteCharacteristic->writeValue(START_TIMER_DECENT, sizeof(START_TIMER_DECENT), false);
-    } else if (_type == GENERIC) {
+    }
+    else if (_type == GENERIC) {
         _pWriteCharacteristic->writeValue(START_TIMER_GENERIC, sizeof(START_TIMER_GENERIC), false);
-    } else {
+    }
+    else {
         _pWriteCharacteristic->writeValue(START_TIMER, sizeof(START_TIMER), false);
     }
 
@@ -668,9 +681,11 @@ void AcaiaArduinoBLE::stopTimer() const {
 
     if (_type == DECENT) {
         _pWriteCharacteristic->writeValue(STOP_TIMER_DECENT, sizeof(STOP_TIMER_DECENT), false);
-    } else if (_type == GENERIC) {
+    }
+    else if (_type == GENERIC) {
         _pWriteCharacteristic->writeValue(STOP_TIMER_GENERIC, sizeof(STOP_TIMER_GENERIC), false);
-    } else {
+    }
+    else {
         _pWriteCharacteristic->writeValue(STOP_TIMER, sizeof(STOP_TIMER), false);
     }
 
@@ -684,9 +699,11 @@ void AcaiaArduinoBLE::resetTimer() const {
 
     if (_type == DECENT) {
         _pWriteCharacteristic->writeValue(RESET_TIMER_DECENT, sizeof(RESET_TIMER_DECENT), false);
-    } else if (_type == GENERIC) {
+    }
+    else if (_type == GENERIC) {
         _pWriteCharacteristic->writeValue(RESET_TIMER_GENERIC, sizeof(RESET_TIMER_GENERIC), false);
-    } else {
+    }
+    else {
         _pWriteCharacteristic->writeValue(RESET_TIMER, sizeof(RESET_TIMER), false);
     }
 
@@ -747,7 +764,8 @@ void AcaiaArduinoBLE::staticNotifyCallback(NimBLERemoteCharacteristic *pRemoteCh
                                            size_t length, bool isNotify) {
     if (_instance) {
         _instance->notifyCallback(pData, length);
-    } else {
+    }
+    else {
         Serial.println("ERROR: _instance is null! Cannot process notification.");
     }
 }
@@ -790,7 +808,8 @@ void AcaiaArduinoBLE::notifyCallback(const uint8_t *pData, size_t length) {
                 Serial.print(", final weight: ");
                 Serial.println(_currentWeight);
             }
-        } else if (((_type == NEW && (length == 13 || length == 17)) || (_type == OLD && length == 13)) && pData[4] ==
+        }
+        else if (((_type == NEW && (length == 13 || length == 17)) || (_type == OLD && length == 13)) && pData[4] ==
                    0x05) {
             // Parse New style data packet
             _currentWeight = (((pData[6] & 0xff) << 8) + (pData[5] & 0xff)) / pow(10, pData[9]) * (
@@ -801,7 +820,8 @@ void AcaiaArduinoBLE::notifyCallback(const uint8_t *pData, size_t length) {
                 Serial.print("NEW scale weight: ");
                 Serial.println(_currentWeight);
             }
-        } else if (_type == GENERIC && length == 20) {
+        }
+        else if (_type == GENERIC && length == 20) {
             // Parse generic scale data packet
             _currentWeight = ((pData[7] << 16) | (pData[8] << 8) | pData[9]);
 
@@ -816,7 +836,8 @@ void AcaiaArduinoBLE::notifyCallback(const uint8_t *pData, size_t length) {
                 Serial.print("GENERIC scale weight: ");
                 Serial.println(_currentWeight);
             }
-        } else if (_type == DECENT) {
+        }
+        else if (_type == DECENT) {
             if (_debug) Serial.println("Parsing DECENT/EspressiScale data");
 
             // EspressiScale/Decent scale data parsing
@@ -851,40 +872,39 @@ void AcaiaArduinoBLE::notifyCallback(const uint8_t *pData, size_t length) {
                 }
 
                 if (checksum == calculated_checksum) {
-                    // Command type 0xCE appears to be weight data
-                    if (cmdtype == 0xCE) {
-                        // Weight is in data1 and data2 as 16-bit value
-                        const uint16_t rawWeight = (data1 << 8) | data2;
-
-                        // Convert to grams (assuming 0.1g resolution)
-                        const float weight = rawWeight / 10.0f;
+                    if (cmdtype == 0xCE || cmdtype == 0xCA) {
+                        const auto weight_raw = static_cast<int16_t>((data1 << 8) | data2);
+                        const float weight = weight_raw * 0.1f;
 
                         if (_debug) {
-                            Serial.print("Weight data - raw: ");
-                            Serial.print(rawWeight);
-                            Serial.print(" -> weight: ");
-                            Serial.print(weight);
+                            Serial.print("Weight data - raw signed: ");
+                            Serial.print(weight_raw);
+                            Serial.print(" (0.1g units) -> weight: ");
+                            Serial.print(weight, 1); // Show 1 decimal place
                             Serial.println("g");
                         }
 
                         // Sanity check the weight value
-                        if (weight >= -5000 && weight < 5000) {
+                        if (weight >= -3276.7f && weight <= 3276.7f) {
                             _currentWeight = weight;
                             newWeightPacket = true;
 
                             if (_debug) {
                                 Serial.print("Updated weight to: ");
-                                Serial.println(_currentWeight);
+                                Serial.println(_currentWeight, 1);
                             }
                         }
-                    } else if (_debug) {
+                    }
+                    else if (_debug) {
                         Serial.print("Unknown command type: 0x");
                         Serial.println(cmdtype, HEX);
                     }
-                } else if (_debug) {
+                }
+                else if (_debug) {
                     Serial.println("Checksum mismatch - ignoring packet");
                 }
-            } else if (_debug) {
+            }
+            else if (_debug) {
                 Serial.print("Invalid packet format - length: ");
                 Serial.print(length);
                 Serial.print(", first byte: 0x");
