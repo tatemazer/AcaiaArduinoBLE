@@ -34,6 +34,11 @@ AcaiaArduinoBLE::AcaiaArduinoBLE(bool debug){
 }
 
 bool AcaiaArduinoBLE::init(String mac){
+
+    Serial.print("AcaiaArduinoBLE Library v");
+    Serial.print(LIBRARY_VERSION);
+    Serial.println(" reinitializing...");
+
     unsigned long start = millis();
     _lastPacket = 0;
 
