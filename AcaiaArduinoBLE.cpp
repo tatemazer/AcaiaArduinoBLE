@@ -116,6 +116,11 @@ bool AcaiaArduinoBLE::init(String mac){
                 _type   = GENERIC;
 	            _write  = peripheral.characteristic(WRITE_CHAR_GENERIC);
 	            _read   = peripheral.characteristic(READ_CHAR_GENERIC);
+            } else if(peripheral.characteristic(READ_CHAR_UMBRA_VERSION).canSubscribe()){
+                Serial.println("Umbra Scale Detected");
+                _type   = UMBRA;
+	            _write  = peripheral.characteristic(WRITE_CHAR_UMBRA_VERSION);
+	            _read   = peripheral.characteristic(READ_CHAR_UMBRA_VERSION);
             }
             else{
                 Serial.println("unable to determine scale type");
@@ -239,11 +244,12 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
         int l = _read.valueLength();
 
         // Get packet
-        if(10 >= l ||                       //10 byte packets for pre-2021 lunar
-          (13 >= l && OLD != _type) ||      //13 byte packets for pyxis and older lunar 2021 fw
-          (14 == l && OLD == _type) ||      //14 byte packets for lunar 2021 AL008
-          (17 == l && NEW == _type) ||      //17 byte packets for newer lunar 2021 fw
-          (20 == l && GENERIC == _type)     //18 byte packets for generic scales
+        if(10 >= l                      ||      //10 byte packets for pre-2021 lunar
+          (13 >= l && OLD != _type)     ||      //13 byte packets for pyxis and older lunar 2021 fw
+          (14 == l && OLD == _type)     ||      //14 byte packets for lunar 2021 AL008
+          (17 == l && NEW == _type)     ||      //17 byte packets for newer lunar 2021 fw
+          (17 == l && UMBRA == _type)   ||      //17 byte packets for umbra 
+          (20 == l && GENERIC == _type)         //18 byte packets for generic scales
         ){
             _read.readValue(input, (l > 13) ? 13 : l); // readValue() seems to crash whenever l > weight packet (10, 13 or 18)
 
@@ -256,10 +262,22 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
             }
         }
 
-        // Parse New style data packet
-        if (NEW == _type && (13 == l || 17 == l) && input[4] == 0x05)
+        // Parse Umbra Packet
+        if (UMBRA == _type && (13 == l || 17 == l) && input[4] == 0x05)
         {
-            //Grab weight bytes (5 and 6) 
+            //Grab weight bytes (5 and 6, *big-endian*) 
+            // apply scaling based on the unit byte (9)
+            // get sign byte (10)
+            _currentWeight = (((input[5] & 0xff) << 8) + (input[6] & 0xff)) 
+                            / pow(10,input[9])
+                            * ((input[10] & 0x02) ? -1 : 1);
+            newWeightPacket = true;
+        }
+
+        // Parse New style data packet
+        else if (NEW == _type && (13 == l || 17 == l) && input[4] == 0x05)
+        {
+            //Grab weight bytes (5 and 6, *little-endian*) 
             // apply scaling based on the unit byte (9)
             // get sign byte (10)
             _currentWeight = (((input[6] & 0xff) << 8) + (input[5] & 0xff)) 
@@ -309,7 +327,8 @@ bool AcaiaArduinoBLE::isScaleName(String name){
         || nameShort == "LUNAR"
         || nameShort == "PEARL"
         || nameShort == "PROCH"
-        || nameShort == "BOOKO";
+        || nameShort == "BOOKO"
+        || nameShort == "UMBRA";
 }
 
 void AcaiaArduinoBLE::exploreService(BLEService service) {

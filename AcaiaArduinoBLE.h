@@ -17,6 +17,8 @@
 #define READ_CHAR_OLD_VERSION  "2a80"
 #define WRITE_CHAR_NEW_VERSION "49535343-8841-43f4-a8d4-ecbe34729bb3"
 #define READ_CHAR_NEW_VERSION  "49535343-1e4d-4bd9-ba61-23c647249616"
+#define WRITE_CHAR_UMBRA_VERSION "0000FE41-8E22-4541-9D4C-21EDAE82ED19"
+#define READ_CHAR_UMBRA_VERSION  "0000FE42-8E22-4541-9D4C-21EDAE82ED19"
 #define WRITE_CHAR_GENERIC     "ff12"
 #define READ_CHAR_GENERIC      "ff11"
 #define HEARTBEAT_PERIOD_MS     2750
@@ -28,7 +30,8 @@
 enum scale_type{
     OLD,    // Lunar (pre-2021)
     NEW,    // Lunar (2021), Pyxis
-    GENERIC // Felicita Arc, etc
+    UMBRA,  // ya know
+    GENERIC // Felicita Arc, BOOKOO
 };
 
 class AcaiaArduinoBLE{
