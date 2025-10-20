@@ -22,7 +22,7 @@ As of version V2.0.0, non-volatile storage for the setpoint and offset is only a
 ## Printed Circuit Board
 ![shotStopperV3 screenshot](https://github.com/user-attachments/assets/a09fe8fb-3705-44c0-88a2-07c61d67b8f6)
 
-The included "shotStopper" example code uses the ShotStopper PCB to make it simple to control your espresso machine using the scale. Files are hosted on [altium 365](https://365.altium.com/files/A15F83F1-2418-4843-B2E7-787275773560).
+The included "shotStopper" example code uses the ShotStopper PCB to make it simple to control your espresso machine using the scale.
 
 A kit can also be ordered by visiting [tatemazer.com](https://tatemazer.com/store)
 
@@ -34,7 +34,7 @@ Join the discord for updates and support: https://discord.gg/NMXb5VYtre
 
 | Model | Powered by Machine (5V) | Brew State Detection Method | Officially Documented |
 | ----- | ----------------------- | --------------------------- | ---------------- |
-| GS3 | No, requires included power supply | Brew Button | Yes |
+| GS3 | No, requires included power supply | Solenoid Valve (Reed Switch) | Yes |
 | Linea Micra | Yes | Brew Switch | Yes | 
 | Linea Mini* | Older, non-IoT machines may require a power supply | Brew Switch | Yes |
 | Linea Mini R | Yes | Brew Switch | Yes |
