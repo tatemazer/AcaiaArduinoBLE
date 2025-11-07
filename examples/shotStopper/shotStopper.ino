@@ -33,6 +33,7 @@
                                     // latches.
 #define BUTTON_READ_PERIOD_MS 5
 #define DRIP_DELAY_S          3     // Time after the shot ended to measure the final weight
+#define SOLENOID_DISCHARGE_S  2
 
 #define EEPROM_SIZE 2  // This is 1-Byte
 #define WEIGHT_ADDR 0  // Use the first byte of EEPROM to store the goal weight
@@ -252,8 +253,8 @@ void loop() {
     //Serial.println();
 
     //The reed switch measurements require a small amount of delay for accuracy.
-    //  if the shot just stopped, assume that the reed switch should read "open" for the first 0.5s
-    if(REEDSWITCH && !shot.brewing && seconds_f() < (shot.start_timestamp_s + shot.end_s + 1)){
+    //  if the shot just stopped, assume that the reed switch should read "open" for some time as it discharges
+    if(REEDSWITCH && !shot.brewing && seconds_f() < (shot.start_timestamp_s + shot.end_s + SOLENOID_DISCHARGE_S)){
       //Serial.println("force reedSwitch Off");
       newButtonState = 0;
     }
