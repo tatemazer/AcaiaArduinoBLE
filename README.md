@@ -11,7 +11,8 @@ This is an Arduino Library which can be found in the Arduino IDE Library Manager
 | Acaia  | Pearl S | USB-Micro                  | v1.0.056 | Ok    | Yes | Yes | Yes
 | Acaia  | Pearl S | USB-C                      | ----     | Ok    | Yes | Yes  | Yes
 | Acaia  | Pyxis   | ----                       | v1.0.022 | Good  | Not Recommended (too sensitive) | Yes | Yes
-| Bookoo | Themis  | ----                       | v1.0.5   | Great | Yes | Yes | Yes 
+| Bookoo | Themis  Mini | ----                       | v1.0.5   | Great | Yes | Yes | Yes 
+| Bookoo | Themis Ultra  | ----                 | ----   | Great | Yes | Yes | Yes 
 
 
 ## Requirements
@@ -41,6 +42,7 @@ Join the discord for updates and support: https://discord.gg/NMXb5VYtre
 | Silvia Pro (X) | Yes | Brew Button | Yes |
 | Stone Espresso | Yes | Solenoid Valve (Reed Switch) | Yes |
 | Ascaso Steel Duo PID | Untested | Brew Button | No
+| Profitec Move | Yes | Brew Button | No |
 
 *Ace Dotshot is compatible with the shotStopper. Also note, shot duration is automated at the scale with the shotStopper, making the dotShot redundant.
 
