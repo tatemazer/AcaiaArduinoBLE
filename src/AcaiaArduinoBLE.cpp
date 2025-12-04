@@ -38,14 +38,6 @@ AcaiaArduinoBLE *AcaiaArduinoBLE::_instance = nullptr;
 
 // Callback implementations
 void MyAdvertisedDeviceCallbacks::onResult(const NimBLEAdvertisedDevice *advertisedDevice) {
-    if (_debug) {
-        Serial.print("Found ");
-        Serial.print(advertisedDevice->getAddress().toString().c_str());
-        Serial.print(" '");
-        Serial.print(advertisedDevice->getName().c_str());
-        Serial.println("'");
-    }
-
     // Check if this is a supported scale
     if (isSupportedScale(advertisedDevice->getName().c_str())) {
         if (_targetMac != "" && String(advertisedDevice->getAddress().toString().c_str()) != _targetMac) {
@@ -57,6 +49,13 @@ void MyAdvertisedDeviceCallbacks::onResult(const NimBLEAdvertisedDevice *adverti
         _deviceFound = true;
         _foundDeviceAddress = advertisedDevice->getAddress();
         _foundDeviceName = advertisedDevice->getName().c_str();
+
+        if (_debug) {
+            Serial.print("Address: ");
+            Serial.println(_foundDeviceAddress.toString().c_str());
+            Serial.print("Address type: ");
+            Serial.println(_foundDeviceAddress.getType()); // 0=PUBLIC, 1=RANDOM
+        }
 
         NimBLEDevice::getScan()->stop();
     }
@@ -181,6 +180,7 @@ bool AcaiaArduinoBLE::init(const String &mac) {
 
     // Set BLE power to maximum for better connection reliability
     NimBLEDevice::setPower(ESP_PWR_LVL_P9);
+    NimBLEDevice::setMTU(255);
 
     _targetMac = mac;
     _connectionStartTime = millis();
@@ -188,6 +188,7 @@ bool AcaiaArduinoBLE::init(const String &mac) {
     _lastPacket = 0;
     _connected = false;
     _connectionAttempts = 0;
+    _lastScanClear = millis();
 
     // Create callbacks
     _pAdvertisedDeviceCallbacks = new MyAdvertisedDeviceCallbacks();
@@ -258,80 +259,108 @@ bool AcaiaArduinoBLE::updateConnection() {
 
             break;
 
-        case CONNECTING: {
-            // Reduced timeout for connecting - 8 seconds instead of 10
-            if (millis() - _connectionStartTime > 8000) {
-                if (_debug) Serial.println("Connection timeout");
-                _connectionState = FAILED;
-                _connectionStartTime = millis();
-                break;
-            }
-
-            if (_debug) Serial.println("Connecting...");
-
-            // Clean up any existing client first
-            if (_pClient) {
-                if (_pClient->isConnected()) {
-                    _pClient->disconnect();
+            case CONNECTING: {
+                // Reduced timeout for connecting - 8 seconds instead of 10
+                if (millis() - _connectionStartTime > 8000) {
+                    if (_debug) Serial.println("Connection timeout");
+                    _connectionState = FAILED;
+                    _connectionStartTime = millis();
+                    break;
                 }
 
-                delay(200);
-                _pClient = nullptr;
-            }
+                if (_debug) Serial.println("Connecting...");
 
-            // Create client
-            _pClient = NimBLEDevice::createClient();
+                // Ensure scan is fully stopped before attempting connection
+                if (_pBLEScan && _pBLEScan->isScanning()) {
+                    if (_debug) Serial.println("Stopping scan before connect...");
+                    _pBLEScan->stop();
+                    delay(100); // Give more time for scan to fully stop
+                }
 
-            if (!_pClient) {
-                if (_debug) Serial.println("Failed to create client - will retry");
-                _connectionState = FAILED;
-                _connectionStartTime = millis();
-                break;
-            }
-
-            // Set client callbacks
-            if (_pClientCallback) {
-                _pClient->setClientCallbacks(_pClientCallback, false);
-            }
-
-            // Try connection with explicit timeout
-            NimBLEAddress scaleAddress = _pAdvertisedDeviceCallbacks->getFoundDeviceAddress();
-
-            if (_debug) {
-                Serial.print("Attempting connection to: ");
-                Serial.println(scaleAddress.toString().c_str());
-            }
-
-            // Use blocking connect with timeout
-            bool connected = false;
-
-            try {
-                connected = _pClient->connect(scaleAddress, false); // false = not delete on disconnect
-            }
-            catch (...) {
-                if (_debug) Serial.println("Exception during connection attempt");
-                connected = false;
-            }
-
-            if (connected && _pClient->isConnected()) {
-                if (_debug) Serial.println("Connected!");
-                _connectionState = DISCOVERING;
-                _connectionStartTime = millis();
-            }
-            else {
-                if (_debug) Serial.println("Failed to connect!");
-
-                // Connection failed - properly clean up
+                // Clean up any existing client first
                 if (_pClient) {
+                    if (_debug) Serial.println("Cleaning up existing client...");
+
+                    if (_pClient->isConnected()) {
+                        _pClient->disconnect();
+                    }
+
+                    delay(100);
                     _pClient = nullptr;
                 }
 
-                _connectionState = FAILED;
-                _connectionStartTime = millis();
-            }
+                // Create client
+                _pClient = NimBLEDevice::createClient();
 
-            break;
-        }
+                if (!_pClient) {
+                    if (_debug) Serial.println("Failed to create client - will retry");
+                    _connectionState = FAILED;
+                    _connectionStartTime = millis();
+                    break;
+                }
+
+                if (_debug) Serial.println("Client created successfully");
+
+                // Set client callbacks
+                if (_pClientCallback) {
+                    _pClient->setClientCallbacks(_pClientCallback, false);
+                }
+
+                // Set relaxed connection parameters for better compatibility
+                _pClient->setConnectionParams(
+                    24,    // min interval
+                    40,    // max interval
+                    0,     // latency
+                    500,   // supervision timeout
+                    16,    // scan interval
+                    16     // scan window
+                );
+
+                // Set a 5 second connect timeout
+                _pClient->setConnectTimeout(5000);
+
+                NimBLEAddress scaleAddress = _pAdvertisedDeviceCallbacks->getFoundDeviceAddress();
+
+                if (_debug) {
+                    Serial.print("Attempting connection to: ");
+                    Serial.println(scaleAddress.toString().c_str());
+                    Serial.print("Address type for connection: ");
+                    Serial.println(scaleAddress.getType());
+                }
+
+                // Use blocking connect
+                bool connected = false;
+
+                try {
+                    connected = _pClient->connect(scaleAddress, false, false, false);
+                }
+                catch (...) {
+                    if (_debug) Serial.println("Exception during connection attempt");
+                    connected = false;
+                }
+
+                // Check actual connection state
+                bool actuallyConnected = _pClient && _pClient->isConnected();
+
+                if (connected && actuallyConnected) {
+                    if (_debug) Serial.println("Connected!");
+                    _connectionState = DISCOVERING;
+                    _connectionStartTime = millis();
+                }
+                else {
+                    if (_debug) Serial.println("Failed to connect!");
+
+                    // Connection failed - properly clean up
+                    if (_pClient) {
+                        _pClient = nullptr;
+                    }
+
+                    _connectionState = FAILED;
+                    _connectionStartTime = millis();
+                }
+
+                break;
+            }
 
         case DISCOVERING: {
             // Reduced timeout for discovery - 3 seconds instead of 5
@@ -394,6 +423,18 @@ bool AcaiaArduinoBLE::updateConnection() {
                     _pWriteCharacteristic = pService->getCharacteristic(NimBLEUUID(WRITE_CHAR_GENERIC));
                     _pReadCharacteristic = pService->getCharacteristic(NimBLEUUID(READ_CHAR_GENERIC));
                     if (_debug) Serial.println("Generic scale detected");
+                }
+            }
+
+            // Try BOOKOO scale
+            if (!pService) {
+                pService = _pClient->getService(NimBLEUUID(SUUID_BOOKOO));
+
+                if (pService) {
+                    _type = BOOKOO;
+                    _pWriteCharacteristic = pService->getCharacteristic(NimBLEUUID(WRITE_CHAR_BOOKOO));
+                    _pReadCharacteristic = pService->getCharacteristic(NimBLEUUID(READ_CHAR_BOOKOO));
+                    if (_debug) Serial.println("Bookoo scale detected");
                 }
             }
 
@@ -539,6 +580,10 @@ bool AcaiaArduinoBLE::updateConnection() {
                     Serial.println(")...");
                 }
 
+                if (_connectionAttempts > 100) {
+                    _connectionAttempts = 1;
+                }
+
                 // Clear any accumulated scan results before restart
                 clearScanResults();
 
@@ -645,7 +690,7 @@ void AcaiaArduinoBLE::tare() {
         }
     }
     else {
-        if (_type == GENERIC) {
+        if (_type == GENERIC || _type == BOOKOO) {
             _pWriteCharacteristic->writeValue(TARE_GENERIC, sizeof(TARE_GENERIC), false);
         }
         else {
@@ -664,7 +709,7 @@ void AcaiaArduinoBLE::startTimer() const {
     if (_type == DECENT) {
         _pWriteCharacteristic->writeValue(START_TIMER_DECENT, sizeof(START_TIMER_DECENT), false);
     }
-    else if (_type == GENERIC) {
+    else if (_type == GENERIC || _type == BOOKOO) {
         _pWriteCharacteristic->writeValue(START_TIMER_GENERIC, sizeof(START_TIMER_GENERIC), false);
     }
     else {
@@ -682,7 +727,7 @@ void AcaiaArduinoBLE::stopTimer() const {
     if (_type == DECENT) {
         _pWriteCharacteristic->writeValue(STOP_TIMER_DECENT, sizeof(STOP_TIMER_DECENT), false);
     }
-    else if (_type == GENERIC) {
+    else if (_type == GENERIC || _type == BOOKOO) {
         _pWriteCharacteristic->writeValue(STOP_TIMER_GENERIC, sizeof(STOP_TIMER_GENERIC), false);
     }
     else {
@@ -700,7 +745,7 @@ void AcaiaArduinoBLE::resetTimer() const {
     if (_type == DECENT) {
         _pWriteCharacteristic->writeValue(RESET_TIMER_DECENT, sizeof(RESET_TIMER_DECENT), false);
     }
-    else if (_type == GENERIC) {
+    else if (_type == GENERIC || _type == BOOKOO) {
         _pWriteCharacteristic->writeValue(RESET_TIMER_GENERIC, sizeof(RESET_TIMER_GENERIC), false);
     }
     else {
@@ -835,6 +880,36 @@ void AcaiaArduinoBLE::notifyCallback(const uint8_t *pData, size_t length) {
             if (_debug) {
                 Serial.print("GENERIC scale weight: ");
                 Serial.println(_currentWeight);
+            }
+        }
+        else if (_type == BOOKOO && length == 20 && pData[0] == 0x03 && pData[1] == 0x0B) {
+            // Parse Bookoo scale data packet (20 bytes)
+            // Format: 03 0B [ms_h ms_m ms_l] [unit] [sign] [weight_h weight_m weight_l] ...
+
+            // Weight is in bytes 7-9 (high, mid, low), value * 100
+            uint32_t weightRaw = ((uint32_t)pData[7] << 16) | ((uint32_t)pData[8] << 8) | pData[9];
+
+            // Sign is in byte 6: '+' (0x2B/43) or '-' (0x2D/45)
+            bool negative = (pData[6] == 0x2D || pData[6] == 45);
+
+            _currentWeight = weightRaw / 100.0f;
+            if (negative) {
+                _currentWeight = -_currentWeight;
+            }
+
+            newWeightPacket = true;
+
+            if (_debug) {
+                // Also extract timer milliseconds for debug
+                uint32_t timerMs = ((uint32_t)pData[2] << 16) | ((uint32_t)pData[3] << 8) | pData[4];
+                uint8_t battery = pData[13];
+                Serial.print("BOOKOO scale - weight: ");
+                Serial.print(_currentWeight);
+                Serial.print("g, timer: ");
+                Serial.print(timerMs);
+                Serial.print("ms, battery: ");
+                Serial.print(battery);
+                Serial.println("%");
             }
         }
         else if (_type == DECENT) {
