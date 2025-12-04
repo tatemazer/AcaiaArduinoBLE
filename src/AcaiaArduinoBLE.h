@@ -1,5 +1,5 @@
 /*
-  AcaiaArduinoBLE.h - Library for connecting to 
+  AcaiaArduinoBLE.h - Library for connecting to
   an Acaia Scale using the ArduinoBLE library.
   Created by Tate Mazer, December 13, 2023.
   Released into the public domain.
@@ -20,8 +20,11 @@
 #define READ_CHAR_DECENT       "0000FFF4-0000-1000-8000-00805F9B34FB"
 #define SUUID_DECENTSCALE      "0000FFF0-0000-1000-8000-00805F9B34FB"
 #define SUUID_GENERIC          "ff10"
+#define SUUID_BOOKOO           "0ffe"
 #define WRITE_CHAR_GENERIC     "ff12"
 #define READ_CHAR_GENERIC      "ff11"
+#define WRITE_CHAR_BOOKOO      "ff12"  // Same as GENERIC
+#define READ_CHAR_BOOKOO       "ff11"  // Same as GENERIC
 #define HEARTBEAT_PERIOD_MS    2750
 #define MAX_PACKET_PERIOD_MS   5000
 
@@ -37,7 +40,8 @@ enum scale_type {
     OLD, // Lunar (pre-2021)
     NEW, // Lunar (2021), Pyxis
     GENERIC, // Felicita Arc, etc
-    DECENT // Decent Scale + EspressiScale
+    DECENT, // Decent Scale + EspressiScale
+    BOOKOO // Bookoo Themis and Themis Ultra
 };
 
 enum ConnectionState {
