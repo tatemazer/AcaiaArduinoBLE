@@ -1,458 +1,233 @@
 /*
-  shotStopper.ino - Example of using an acaia scale to brew by weight with an espresso machine
+  AcaiaArduinoBLE.h - Library for connecting to 
+  an Acaia Scale using the ArduinoBLE library.
+  Created by Tate Mazer, December 13, 2023.
+  Released into the public domain.
 
-  Immediately Connects to a nearby acaia scale, 
-  tare's the scale when the "in" gpio is triggered (active low),
-  and then triggers the "out" gpio to stop the shot once ( goalWeight - weightOffset ) is achieved.
-
-  Tested on a Acaia Pyxis, Arduino nano ESP32, and La Marzocco GS3. 
-
-  Note that only the EEPROM library only supports ESP32-based controllers.
-
-  To set the Weight over BLE, use a BLE app such as LightBlue to connect
-  to the "shotStopper" BLE device and read/write to the weight characteristic,
-  otherwise the weight is defaulted to 36g.
-
-  Created by Tate Mazer, 2023.
-
-  Released under the MIT license.
-
-  https://github.com/tatemazer/AcaiaArduinoBLE
-
+  Pio Baettig: Adding Felicita Arc support 
 */
 
-#include <AcaiaArduinoBLE.h>
-#include <EEPROM.h>
 
-#define MAX_OFFSET 5                // In case an error in brewing occured
-#define MIN_SHOT_DURATION_S 3       //Useful for flushing the group.
-                                    // This ensure that the system will ignore
-                                    // "shots" that last less than this duration
-#define MAX_SHOT_DURATION_S 50      //Primarily useful for latching switches, since user
-                                    // looses control of the paddle once the system
-                                    // latches.
-#define BUTTON_READ_PERIOD_MS 5
-#define DRIP_DELAY_S          3     // Time after the shot ended to measure the final weight
+#define LIBRARY_VERSION        "3.2.0"
+#define WRITE_CHAR_OLD_VERSION "2a80"
+#define READ_CHAR_OLD_VERSION  "2a80"
+#define WRITE_CHAR_NEW_VERSION "49535343-8841-43f4-a8d4-ecbe34729bb3"
+#define READ_CHAR_NEW_VERSION  "49535343-1e4d-4bd9-ba61-23c647249616"
+#define WRITE_CHAR_GENERIC     "ff12"
+#define READ_CHAR_GENERIC      "ff11"
+#define HEARTBEAT_PERIOD_MS     2750
+#define MAX_PACKET_PERIOD_MS    5000
 
-#define EEPROM_SIZE 2  // This is 1-Byte
-#define WEIGHT_ADDR 0  // Use the first byte of EEPROM to store the goal weight
-#define OFFSET_ADDR 1  
+#include <Arduino.h>
 
-#define DEBUG false
+#include <NimBLEDevice.h>
 
-#define N 10                        // Number of datapoints used to calculate trend line
+byte IDENTIFY[20]               = { 0xef, 0xdd, 0x0b, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x9a, 0x6d };
+byte HEARTBEAT[7]               = { 0xef, 0xdd, 0x00, 0x02, 0x00, 0x02, 0x00 };
+byte NOTIFICATION_REQUEST[14]   = { 0xef, 0xdd, 0x0c, 0x09, 0x00, 0x01, 0x01, 0x02, 0x02, 0x05, 0x03, 0x04, 0x15, 0x06 };
+byte START_TIMER[7]             = { 0xef, 0xdd, 0x0d, 0x00, 0x00, 0x00, 0x00 };
+byte STOP_TIMER[7]              = { 0xef, 0xdd, 0x0d, 0x00, 0x02, 0x00, 0x02 };
+byte RESET_TIMER[7]             = { 0xef, 0xdd, 0x0d, 0x00, 0x01, 0x00, 0x01 };
+byte TARE_ACAIA[6]              = { 0xef, 0xdd, 0x04, 0x00, 0x00, 0x00 };
+byte TARE_GENERIC[6]            = { 0x03, 0x0a, 0x01, 0x00, 0x00, 0x08 };
+byte START_TIMER_GENERIC[6]     = { 0x03, 0x0a, 0x04, 0x00, 0x00, 0x0a };
+byte STOP_TIMER_GENERIC[6]      = { 0x03, 0x0a, 0x05, 0x00, 0x00, 0x0d };
+byte RESET_TIMER_GENERIC[6]     = { 0x03, 0x0a, 0x06, 0x00, 0x00, 0x0c };
 
-//User defined***
-#define MOMENTARY false        //Define brew switch style. 
-                              // True for momentary switches such as GS3 AV, Silvia Pro
-                              // false for latching switches such as Linea Mini/Micra
-#define REEDSWITCH false      // Set to true if the brew state is being determined 
-                              //  by a reed switch attached to the brew solenoid
-#define AUTOTARE true         // Automatically tare when shot is started 
-                              //  and 3 seconds after a latching switch brew 
-                              // (as defined by MOMENTARY)
-#define TIMER_ONLY false      // disables brew by weight functionality, and only automates the timer/tare
-//***************
+static const NimBLEAdvertisedDevice* advDevice;
+static bool                          doConnect  = false;
+static uint32_t                      scanTimeMs = 5000; /** scan time in milliseconds, 0 = scan forever */
 
-// Board Hardware 
-#ifdef ARDUINO_ESP32S3_DEV
-  #define LED_RED     46
-  #define LED_BLUE    45
-  #define LED_GREEN   47
-  #define LED_BUILTIN 48
-  #define IN          21
-  #define OUT         38
-  #define REED_IN     18
-#else //todo: find nano esp32 identifier
-  //LED's are defined by framework
-  #define IN          10
-  #define OUT         11
-  #define REED_IN     9
-#endif 
+/** Define a class to handle the callbacks when scan events are received */
+class ScanCallbacks : public NimBLEScanCallbacks {
+    void onResult(const NimBLEAdvertisedDevice* advertisedDevice) override {
+        //Serial.printf("Advertised Device found: %s\n", advertisedDevice->getName().c_str());
 
-#define BUTTON_STATE_ARRAY_LENGTH 31
 
-typedef enum {BUTTON, WEIGHT, TIME, DISCONNECT, UNDEF} ENDTYPE;
 
-// RGB Colors {Red,Green,Blue}
-int RED[3] = {255, 0, 0};
-int GREEN[3] = {0, 255, 0};
-int BLUE[3] = {0, 0, 255};
-int MAGENTA[3] = {255, 0, 255};
-int CYAN[3] = {0, 255, 255};
-int YELLOW[3] = {255, 255, 0};
-int WHITE[3] = {255, 255, 255};
-int OFF[3] = {0,0,0};
-int currentColor[3] = {0,0,0};
+        if (advertisedDevice->getName().substr(0,5) == "CINCO") {
+            Serial.printf("Found Our Service\n");
+            /** stop scan before connecting */
+            NimBLEDevice::getScan()->stop();
+            /** Save the device reference in a global for the client to use*/
+            advDevice = advertisedDevice;
+            /** Ready to connect now */
+            doConnect = true;
+        }
+    }
 
-AcaiaArduinoBLE scale(DEBUG);
-float currentWeight = 0;
-uint8_t goalWeight = 0;      // Goal Weight to be read from EEPROM
-float weightOffset = 0;
-float error = 0;
-int buttonArr[BUTTON_STATE_ARRAY_LENGTH];            // last 4 readings of the button
+    /** Callback to process the results of the completed scan or restart it */
+    void onScanEnd(const NimBLEScanResults& results, int reason) override {
+        Serial.printf("Scan Ended, reason: %d, device count: %d; Restarting scan\n", reason, results.getCount());
+        NimBLEDevice::getScan()->start(scanTimeMs, false, true);
+    }
+} scanCallbacks;
 
-// button 
-int in = REEDSWITCH ? REED_IN : IN;
-bool buttonPressed = false; //physical status of button
-bool buttonLatched = false; //electrical status of button
-unsigned long lastButtonRead_ms = 0;
-int newButtonState = 0;
+/** Notification / Indication receiving handler callback */
+void notifyCB(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
+    std::string str  = (isNotify == true) ? "Notification" : "Indication";
+    str             += " from ";
+    str             += pRemoteCharacteristic->getClient()->getPeerAddress().toString();
+    str             += ": Service = " + pRemoteCharacteristic->getRemoteService()->getUUID().toString();
+    str             += ", Characteristic = " + pRemoteCharacteristic->getUUID().toString();
+    str             += ", Value = " + std::string((char*)pData, length);
 
-struct Shot {
-  float start_timestamp_s; // Relative to runtime
-  float shotTimer;         // Reset when the final drip measurement is made
-  float end_s;             // Number of seconds after the shot started
-  float expected_end_s;    // Estimated duration of the shot
-  float weight[1000];      // A scatter plot of the weight measurements, along with time_s[]
-  float time_s[1000];      // Number of seconds after the shot starte
-  int datapoints;          // Number of datapoitns in the scatter plot
-  bool brewing;            // True when actively brewing, otherwise false
-  ENDTYPE end;
-};
+    //Serial.printf("%s\n", str.c_str());
+    //Serial.printf("%i\n", length);
+    if(length == 13){
+        float currentWeight = (((pData[6] & 0xff) << 8) + (pData[5] & 0xff)) 
+                            / pow(10,pData[9])
+                            * ((pData[10] & 0x02) ? -1 : 1);
 
-//Initialize shot
-Shot shot = {0,0,0,0,{},{},0,false,ENDTYPE::UNDEF};
+        Serial.printf("%.2f\n", currentWeight);
+    }
+    
 
-//BLE peripheral device
-BLEService weightService("0x0FFE"); // create service
-BLEByteCharacteristic weightCharacteristic("0xFF11",  BLEWrite | BLERead);
+}
+
+/** Handles the provisioning of clients and connects / interfaces with the server */
+bool connectToServer() {
+    NimBLEClient* pClient = nullptr;
+
+    /** Check if we have a client we should reuse first **/
+    if (NimBLEDevice::getCreatedClientCount()) {
+        /**
+         *  Special case when we already know this device, we send false as the
+         *  second argument in connect() to prevent refreshing the service database.
+         *  This saves considerable time and power.
+         */
+        pClient = NimBLEDevice::getClientByPeerAddress(advDevice->getAddress());
+        if (pClient) {
+            if (!pClient->connect(advDevice, false)) {
+                Serial.printf("Reconnect failed\n");
+                return false;
+            }
+            Serial.printf("Reconnected client\n");
+        } else {
+            /**
+             *  We don't already have a client that knows this device,
+             *  check for a client that is disconnected that we can use.
+             */
+            pClient = NimBLEDevice::getDisconnectedClient();
+        }
+    }
+
+    /** No client to reuse? Create a new one. */
+    if (!pClient) {
+        if (NimBLEDevice::getCreatedClientCount() >= NIMBLE_MAX_CONNECTIONS) {
+            Serial.printf("Max clients reached - no more connections available\n");
+            return false;
+        }
+
+        pClient = NimBLEDevice::createClient();
+
+        Serial.printf("New client created\n");
+
+        //pClient->setClientCallbacks(&clientCallbacks, false);
+        /**
+         *  Set initial connection parameters:
+         *  These settings are safe for 3 clients to connect reliably, can go faster if you have less
+         *  connections. Timeout should be a multiple of the interval, minimum is 100ms.
+         *  Min interval: 12 * 1.25ms = 15, Max interval: 12 * 1.25ms = 15, 0 latency, 150 * 10ms = 1500ms timeout
+         */
+        pClient->setConnectionParams(12, 12, 0, 150);
+
+        /** Set how long we are willing to wait for the connection to complete (milliseconds), default is 30000. */
+        pClient->setConnectTimeout(5 * 1000);
+
+        if (!pClient->connect(advDevice)) {
+            /** Created a client but failed to connect, don't need to keep it as it has no data */
+            NimBLEDevice::deleteClient(pClient);
+            Serial.printf("Failed to connect, deleted client\n");
+            return false;
+        }
+    }
+
+    if (!pClient->isConnected()) {
+        if (!pClient->connect(advDevice)) {
+            Serial.printf("Failed to connect\n");
+            return false;
+        }
+    }
+
+    Serial.printf("Connected to: %s RSSI: %d\n", pClient->getPeerAddress().toString().c_str(), pClient->getRssi());
+
+    /** Now we can read/write/subscribe the characteristics of the services we are interested in */
+    NimBLERemoteService*        pSvc = nullptr;
+    NimBLERemoteCharacteristic* pWriteChr = nullptr;
+    NimBLERemoteCharacteristic* pReadChr = nullptr;
+
+    pSvc = pClient->getService("49535343-fe7d-4ae5-8fa9-9fafd205e455");
+    if (pSvc) {
+        pWriteChr = pSvc->getCharacteristic(WRITE_CHAR_NEW_VERSION);
+        pReadChr  = pSvc->getCharacteristic(READ_CHAR_NEW_VERSION);
+    }
+
+    if(pReadChr->canNotify()){
+        Serial.printf("can Notify!\n");
+        if (!pReadChr->subscribe(true, notifyCB)) {
+                pClient->disconnect();
+                Serial.printf("can't Subscribe!\n");
+                return false;
+        }
+    }
+    if (pWriteChr->canWrite()) {
+        //Write Indentify and Notification Request arrays to start receiving data.
+        if (pWriteChr->writeValue(IDENTIFY) && pWriteChr->writeValue(NOTIFICATION_REQUEST)) {
+            Serial.printf("Wrote new values to: %s\n", pWriteChr->getUUID().toString().c_str());
+        } else {
+            pClient->disconnect();
+            return false;
+        }
+    }
+
+    Serial.printf("Done with this device!\n");
+    return true;
+}
 
 void setup() {
-  setCpuFrequencyMhz(80);
-  Serial.begin(9600);
-  EEPROM.begin(EEPROM_SIZE);
+    Serial.begin(115200);
+    Serial.printf("Starting NimBLE Client\n");
 
-  // Get stored setpoint and offset
-  goalWeight = EEPROM.read(WEIGHT_ADDR);
-  weightOffset = EEPROM.read(OFFSET_ADDR)/10.0;
-  Serial.print("Goal Weight retrieved: ");
-  Serial.println(goalWeight);
-  Serial.print("offset retrieved: ");
-  Serial.println(goalWeight);
+    /** Initialize NimBLE and set the device name */
+    NimBLEDevice::init("NimBLE-Client");
 
-  //If eeprom isn't initialized and has an 
-  // unreasonable weight/offset, default to 36g/1.5g
-  if( (goalWeight < 10) || (goalWeight > 200) ){
-    goalWeight = 36;
-    Serial.print("Goal Weight set to: ");
-    Serial.println(goalWeight);
-  }
-  if(weightOffset > MAX_OFFSET){
-    weightOffset = 1.5;
-    Serial.print("Offset set to: ");
-    Serial.println(weightOffset);
-  }
-  
-  // initialize the GPIO hardware
-  pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(in, INPUT_PULLUP);
-  pinMode(OUT, OUTPUT);
-  pinMode(LED_RED, OUTPUT);
-  pinMode(LED_GREEN, OUTPUT);
-  pinMode(LED_BLUE, OUTPUT);
-  setColor(OFF);
+    /** Optional: set the transmit power */
+    //NimBLEDevice::setPower(3); /** 3dbm */
 
-  // initialize the BLE hardware
-  BLE.begin();
-  BLE.setLocalName("shotStopper");
-  BLE.setAdvertisedService(weightService);
-  weightService.addCharacteristic(weightCharacteristic);
-  BLE.addService(weightService);
-  weightCharacteristic.writeValue(goalWeight);
-  BLE.advertise();
-  Serial.println("Bluetooth® device active, waiting for connections...");
+    NimBLEScan* pScan = NimBLEDevice::getScan();
+
+    /** Set the callbacks to call when scan events occur, no duplicates */
+    pScan->setScanCallbacks(&scanCallbacks, false);
+
+    /** Set scan interval (how often) and window (how long) in milliseconds */
+    pScan->setInterval(100);
+    pScan->setWindow(100);
+
+    /**
+     * Active scan will gather scan response data from advertisers
+     *  but will use more energy from both devices
+     */
+    //pScan->setActiveScan(true);
+
+    /** Start scanning for advertisers */
+    pScan->start(scanTimeMs);
+    Serial.printf("Scanning for peripherals\n");
 }
 
 void loop() {
+    /** Loop here until we find a device we want to connect to */
+    delay(10);
 
-  // Connect to scale
-  while(!scale.isConnected()){
+    if (doConnect) {
+        doConnect = false;
+        /** Found a device we want to connect to, do it now */
+        if (connectToServer()) {
+            Serial.printf("Success! we should now be getting notifications, scanning for more!\n");
+        } else {
+            Serial.printf("Failed to connect, starting scan\n");
+        }
 
-    setColor(RED);
-    scale.init(); 
-    currentWeight = 0;
-    if(shot.brewing){
-      shot.brewing = false;
-      shot.end = ENDTYPE::DISCONNECT;
-      setBrewingState(false);
+        NimBLEDevice::getScan()->start(scanTimeMs, false, true);
     }
-    if(scale.isConnected()){
-      setColor(YELLOW);
-    }
-  }
-
-  // Check for setpoint updates
-  BLE.poll();
-  if (weightCharacteristic.written()) {
-    Serial.print("goal weight updated from ");
-    Serial.print(goalWeight);
-    Serial.print(" to ");
-    goalWeight = weightCharacteristic.value();
-    Serial.println(goalWeight);
-    EEPROM.write(WEIGHT_ADDR, goalWeight); //1 byte, 0-255
-    EEPROM.commit();
-  }
-
-  // Send a heartbeat message to the scale periodically to maintain connection
-  if(scale.heartbeatRequired()){
-    scale.heartbeat();
-  }
-
-  // always call newWeightAvailable to actually receive the datapoint from the scale,
-  // otherwise getWeight() will return stale data
-  if(scale.newWeightAvailable()){
-    currentWeight = scale.getWeight();
-
-    Serial.print(currentWeight);
-
-    if(!shot.brewing){
-      setColor(GREEN);
-    }
-
-    // update shot trajectory
-    if(shot.brewing && !TIMER_ONLY){
-      shot.time_s[shot.datapoints] = seconds_f()-shot.start_timestamp_s;
-      shot.weight[shot.datapoints] = currentWeight;
-      shot.shotTimer = shot.time_s[shot.datapoints];
-      shot.datapoints++;
-
-      Serial.print(" ");
-      Serial.print(shot.shotTimer);
-
-      //get the likely end time of the shot
-      calculateEndTime(&shot);
-      Serial.print(" ");
-      Serial.print(shot.expected_end_s);
-    }
-    Serial.println();
-  }
-
-  // Read button every period
-  if(millis() > (lastButtonRead_ms + BUTTON_READ_PERIOD_MS) ){
-    lastButtonRead_ms = millis();
-
-    //push back for new entry
-    for(int i = BUTTON_STATE_ARRAY_LENGTH - 2;i>=0;i--){
-      buttonArr[i+1] = buttonArr[i];
-    }
-    buttonArr[0] = !digitalRead(in); //Active Low
-
-    //only return 1 if contains 1
-    // Also assume the button is off for a few milliseconds
-    // after the shot is done, there can be residual noise
-    // from the reed switch
-    newButtonState = 0;
-    for(int i=0; i<BUTTON_STATE_ARRAY_LENGTH; i++){
-      if(buttonArr[i]){
-        newButtonState = 1;          
-      }
-      //Serial.print(buttonArr[i]);
-    }
-    //Serial.println();
-
-    //The reed switch measurements require a small amount of delay for accuracy.
-    //  if the shot just stopped, assume that the reed switch should read "open" for the first 0.5s
-    if(REEDSWITCH && !shot.brewing && seconds_f() < (shot.start_timestamp_s + shot.end_s + 1)){
-      //Serial.println("force reedSwitch Off");
-      newButtonState = 0;
-    }
-  }
-
-  // SHOT INITIATION EVENTS --------------------------------
-  
-  //button just pressed (and released)
-  if(newButtonState && buttonPressed == false ){
-    Serial.println("ButtonPressed");
-    buttonPressed = true;
-    if(!MOMENTARY || REEDSWITCH){
-      shot.brewing = true;
-      setBrewingState(shot.brewing);
-    }
-  }
-    
-  // button held. Take over for the rest of the shot.
-  else if(!TIMER_ONLY
-  && !MOMENTARY 
-  && shot.brewing 
-  && !buttonLatched 
-  && (shot.shotTimer > MIN_SHOT_DURATION_S) 
-  ){
-    buttonLatched = true;
-    Serial.println("Button Latched");
-    digitalWrite(OUT,HIGH); Serial.println("wrote high");
-    // Get the scale to beep to inform user.
-    if(AUTOTARE){
-      scale.tare();
-    }
-  }
-
-  // SHOT COMPLETION EVENTS --------------------------------
-
-  //button released
-  else if(!buttonLatched 
-  && !newButtonState 
-  && buttonPressed == true 
-  ){
-    Serial.println("Button Released");
-    buttonPressed = false;
-    shot.brewing = !shot.brewing;
-    if(!shot.brewing){
-      shot.end = ENDTYPE::BUTTON;
-    }
-    setBrewingState(shot.brewing);
-  }
-    
-  //Max duration reached
-  else if(!TIMER_ONLY 
-  && shot.brewing 
-  && shot.shotTimer > MAX_SHOT_DURATION_S ){
-    shot.brewing = false;
-    Serial.println("Max brew duration reached");
-    shot.end = ENDTYPE::TIME;
-    setBrewingState(shot.brewing);
-  }
-
-  //Blink LED while brewing
-  if(shot.brewing){
-    setColor( (millis()/1000)%2 ? GREEN : BLUE );
-  }
-
-  //End shot
-  if(!TIMER_ONLY 
-  && shot.brewing 
-  && shot.shotTimer >= shot.expected_end_s
-  && shot.shotTimer >  MIN_SHOT_DURATION_S
-  ){
-    Serial.println("weight achieved");
-    shot.brewing = false;
-    shot.end = ENDTYPE::WEIGHT;
-    setBrewingState(shot.brewing); 
-  }
-
-  // SHOT ANALYSIS  --------------------------------
-
-  //Detect error of shot
-  if(!TIMER_ONLY
-  && shot.start_timestamp_s
-  && shot.end_s
-  && currentWeight >= (goalWeight - weightOffset)
-  && seconds_f() > shot.start_timestamp_s + shot.end_s + DRIP_DELAY_S){
-    shot.start_timestamp_s = 0;
-    shot.end_s = 0;
-
-    Serial.print("I detected a final weight of ");
-    Serial.print(currentWeight);
-    Serial.print("g. The goal was ");
-    Serial.print(goalWeight);
-    Serial.print("g with a negative offset of ");
-    Serial.print(weightOffset);
-
-    if( abs(currentWeight - goalWeight + weightOffset) > MAX_OFFSET ){
-      Serial.print("g. Error assumed. Offset unchanged. ");
-    }
-    else{
-      Serial.print("g. Next time I'll create an offset of ");
-      weightOffset += currentWeight - goalWeight;
-      Serial.print(weightOffset);
-
-      EEPROM.write(OFFSET_ADDR, weightOffset*10); //1 byte, 0-255
-      EEPROM.commit();
-    }
-    Serial.println();
-  }
-}
-
-void setBrewingState(bool brewing){
-  if(brewing){
-    Serial.println("shot started");
-    shot.start_timestamp_s = seconds_f();
-    shot.shotTimer = 0;
-    shot.datapoints = 0;
-    scale.resetTimer();
-    scale.startTimer();
-    if(AUTOTARE){
-      scale.tare();
-    }
-    Serial.println("Weight Timer End");
-  }else{
-    Serial.print("ShotEnded by ");
-    switch (shot.end) {
-      case ENDTYPE::TIME:
-        Serial.println("time");
-        break;
-      case ENDTYPE::WEIGHT:
-        Serial.println("weight");
-        break;
-      case ENDTYPE::BUTTON:
-        Serial.println("button");
-        break;
-      case ENDTYPE::DISCONNECT:
-        Serial.println("disconnect");
-        break;
-      case ENDTYPE::UNDEF:
-        Serial.println("undef");
-        break;
-    }
-
-    shot.end_s = seconds_f() - shot.start_timestamp_s;
-    scale.stopTimer();
-    if(!TIMER_ONLY 
-    && MOMENTARY 
-    && (ENDTYPE::WEIGHT == shot.end || ENDTYPE::TIME == shot.end)){
-      //Pulse button to stop brewing
-      digitalWrite(OUT,HIGH);Serial.println("wrote high");
-      delay(300);
-      digitalWrite(OUT,LOW);Serial.println("wrote low");
-      buttonPressed = false;
-    }else if(!TIMER_ONLY && !MOMENTARY){
-      buttonLatched = false;
-      buttonPressed = false;
-      Serial.println("Button Unlatched and not pressed");
-      digitalWrite(OUT,LOW); Serial.println("wrote low");
-    }
-  } 
-
-  // Reset
-  shot.end = ENDTYPE::UNDEF;
-}
-void calculateEndTime(Shot* s){
-  
-  // Do not  predict end time if there aren't enough espresso measurements yet
-  if( (s->datapoints < N) || (s->weight[s->datapoints-1] < 10) ){
-    s->expected_end_s = MAX_SHOT_DURATION_S;
-  }
-  else{
-    //Get line of best fit (y=mx+b) from the last 10 measurements 
-    float sumXY = 0, sumX = 0, sumY = 0, sumSquaredX = 0, m = 0, b = 0, meanX = 0, meanY = 0;
-
-    for(int i = s->datapoints - N; i < s->datapoints; i++){
-      sumXY+=s->time_s[i]*s->weight[i];
-      sumX+=s->time_s[i];
-      sumY+=s->weight[i];
-      sumSquaredX += ( s->time_s[i] * s->time_s[i] );
-    }
-
-    m = (N*sumXY-sumX*sumY) / (N*sumSquaredX-(sumX*sumX));
-    meanX = sumX/N;
-    meanY = sumY/N;
-    b = meanY-m*meanX;
-
-    //Calculate time at which goal weight will be reached (x = (y-b)/m)
-    // if M is negative (which can happen during a blooming shot when the flow stops) assume max duration (issue #29)
-    s->expected_end_s = (m < 0) ? MAX_SHOT_DURATION_S : (goalWeight - weightOffset - b)/m;
-  }
-}
-
-float seconds_f(){
-  return millis()/1000.0;
-}
-
-void setColor(int rgb[3]){
-  analogWrite(LED_RED,   255-rgb[0] );
-  analogWrite(LED_GREEN, 255-rgb[1] );
-  analogWrite(LED_BLUE,  255-rgb[2] );
-  currentColor[0] = rgb[0];
-  currentColor[1] = rgb[1];
-  currentColor[2] = rgb[2];
 }
