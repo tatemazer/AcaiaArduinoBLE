@@ -681,7 +681,10 @@ void AcaiaArduinoBLE::tare() {
         decent_scale_tare_counter = (decent_scale_tare_counter + 1) % 256;
 
         uint8_t cmd[7] = {0x03, 0x0F, decent_scale_tare_counter, 0x00, 0x00, 0x00, 0x00};
-        cmd[6] = 0x0F ^ decent_scale_tare_counter; // XOR checksum
+
+        for (int i = 0; i < 6; i++) { // XOR checksum
+            cmd[6] ^= cmd[i];
+        }
 
         _pWriteCharacteristic->writeValue(cmd, sizeof(cmd), false);
 
