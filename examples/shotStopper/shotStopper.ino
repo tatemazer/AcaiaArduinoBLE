@@ -59,10 +59,16 @@
   #define LED_RED     46
   #define LED_BLUE    45
   #define LED_GREEN   47
-  #define LED_BUILTIN 48
   #define IN          21
   #define OUT         38
   #define REED_IN     18
+#elifdef ARDUINO_ESP32C3_DEV
+  #define LED_RED     21
+  #define LED_BLUE    10
+  #define LED_GREEN   20
+  #define IN          8
+  #define OUT         6
+  #define REED_IN     7
 #else //todo: find nano esp32 identifier
   //LED's are defined by framework
   #define IN          10
@@ -145,7 +151,6 @@ void setup() {
   }
   
   // initialize the GPIO hardware
-  pinMode(LED_BUILTIN, OUTPUT);
   pinMode(in, INPUT_PULLUP);
   pinMode(OUT, OUTPUT);
   pinMode(LED_RED, OUTPUT);
