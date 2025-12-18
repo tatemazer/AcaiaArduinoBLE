@@ -21,10 +21,13 @@
 #define SUUID_DECENTSCALE      "0000FFF0-0000-1000-8000-00805F9B34FB"
 #define SUUID_GENERIC          "ff10"
 #define SUUID_BOOKOO           "0ffe"
+#define SUUID_WEIGHMYBRU       "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
 #define WRITE_CHAR_GENERIC     "ff12"
 #define READ_CHAR_GENERIC      "ff11"
 #define WRITE_CHAR_BOOKOO      "ff12"  // Same as GENERIC
 #define READ_CHAR_BOOKOO       "ff11"  // Same as GENERIC
+#define WRITE_CHAR_WEIGHMYBRU  "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
+#define READ_CHAR_WEIGHMYBRU   "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
 #define HEARTBEAT_PERIOD_MS    2750
 #define MAX_PACKET_PERIOD_MS   5000
 
@@ -41,7 +44,8 @@ enum scale_type {
     NEW, // Lunar (2021), Pyxis
     GENERIC, // Felicita Arc, etc
     DECENT, // Decent Scale + EspressiScale
-    BOOKOO // Bookoo Themis and Themis Ultra
+    BOOKOO, // Bookoo Themis and Themis Ultra
+    WEIGHMYBRU // WeighMyBru DIY scales
 };
 
 enum ConnectionState {

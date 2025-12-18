@@ -32,6 +32,10 @@ const byte RESET_TIMER_GENERIC[6] = {0x03, 0x0a, 0x06, 0x00, 0x00, 0x0c};
 const byte START_TIMER_DECENT[7] = {0x03, 0x0b, 0x03, 0x00, 0x00, 0x00, 0x08};
 const byte STOP_TIMER_DECENT[7] = {0x03, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x0b};
 const byte RESET_TIMER_DECENT[7] = {0x03, 0x0b, 0x02, 0x00, 0x00, 0x00, 0x09};
+const byte TARE_WEIGHMYBRU[4] = {0x03, 0x0a, 0x01, 0x01};
+const byte START_TIMER_WEIGHMYBRU[4] = {0x03, 0x0a, 0x02, 0x01};
+const byte STOP_TIMER_WEIGHMYBRU[4] = {0x03, 0x0a, 0x03, 0x01};
+const byte RESET_TIMER_WEIGHMYBRU[4] = {0x03, 0x0a, 0x04, 0x01};
 
 // Static instance for callback
 AcaiaArduinoBLE *AcaiaArduinoBLE::_instance = nullptr;
@@ -76,7 +80,7 @@ bool MyAdvertisedDeviceCallbacks::isSupportedScale(const String &name) {
     return normalizedName.startsWith("ACAIA") || normalizedName.startsWith("LUNAR") || normalizedName.
            startsWith("PYXIS") || normalizedName.startsWith("PEARL") || normalizedName.startsWith("CINCO") ||
            normalizedName.startsWith("PROCH") || normalizedName.startsWith("BOOKOO") || normalizedName.
-           startsWith("DECENT") || normalizedName.startsWith("ESPRESSISCALE");
+           startsWith("DECENT") || normalizedName.startsWith("ESPRESSISCALE") || normalizedName.startsWith("WEIGHMYBRU");
 }
 
 void MyClientCallback::onConnect(NimBLEClient *pclient) {
@@ -450,6 +454,18 @@ bool AcaiaArduinoBLE::updateConnection() {
                 }
             }
 
+            // Try WeighMyBru scale
+            if (!pService) {
+                pService = _pClient->getService(NimBLEUUID(SUUID_WEIGHMYBRU));
+
+                if (pService) {
+                    _type = WEIGHMYBRU;
+                    _pWriteCharacteristic = pService->getCharacteristic(NimBLEUUID(WRITE_CHAR_WEIGHMYBRU));
+                    _pReadCharacteristic = pService->getCharacteristic(NimBLEUUID(READ_CHAR_WEIGHMYBRU));
+                    if (_debug) Serial.println("WeighMyBru scale detected");
+                }
+            }
+
             if (pService && _pWriteCharacteristic && _pReadCharacteristic) {
                 if (_debug) Serial.println("Service and characteristics found");
                 _connectionState = CONFIGURING;
@@ -696,6 +712,9 @@ void AcaiaArduinoBLE::tare() {
         if (_type == GENERIC || _type == BOOKOO) {
             _pWriteCharacteristic->writeValue(TARE_GENERIC, sizeof(TARE_GENERIC), false);
         }
+        else if (_type == WEIGHMYBRU) {
+            _pWriteCharacteristic->writeValue(TARE_WEIGHMYBRU, sizeof(TARE_WEIGHMYBRU), false);
+        }
         else {
             _pWriteCharacteristic->writeValue(TARE_ACAIA, sizeof(TARE_ACAIA), false);
         }
@@ -715,6 +734,9 @@ void AcaiaArduinoBLE::startTimer() const {
     else if (_type == GENERIC || _type == BOOKOO) {
         _pWriteCharacteristic->writeValue(START_TIMER_GENERIC, sizeof(START_TIMER_GENERIC), false);
     }
+    else if (_type == WEIGHMYBRU) {
+        _pWriteCharacteristic->writeValue(START_TIMER_WEIGHMYBRU, sizeof(START_TIMER_WEIGHMYBRU), false);
+    }
     else {
         _pWriteCharacteristic->writeValue(START_TIMER, sizeof(START_TIMER), false);
     }
@@ -733,6 +755,9 @@ void AcaiaArduinoBLE::stopTimer() const {
     else if (_type == GENERIC || _type == BOOKOO) {
         _pWriteCharacteristic->writeValue(STOP_TIMER_GENERIC, sizeof(STOP_TIMER_GENERIC), false);
     }
+    else if (_type == WEIGHMYBRU) {
+        _pWriteCharacteristic->writeValue(STOP_TIMER_WEIGHMYBRU, sizeof(STOP_TIMER_WEIGHMYBRU), false);
+    }
     else {
         _pWriteCharacteristic->writeValue(STOP_TIMER, sizeof(STOP_TIMER), false);
     }
@@ -750,6 +775,9 @@ void AcaiaArduinoBLE::resetTimer() const {
     }
     else if (_type == GENERIC || _type == BOOKOO) {
         _pWriteCharacteristic->writeValue(RESET_TIMER_GENERIC, sizeof(RESET_TIMER_GENERIC), false);
+    }
+    else if (_type == WEIGHMYBRU) {
+        _pWriteCharacteristic->writeValue(RESET_TIMER_WEIGHMYBRU, sizeof(RESET_TIMER_WEIGHMYBRU), false);
     }
     else {
         _pWriteCharacteristic->writeValue(RESET_TIMER, sizeof(RESET_TIMER), false);
@@ -913,6 +941,42 @@ void AcaiaArduinoBLE::notifyCallback(const uint8_t *pData, size_t length) {
                 Serial.print("ms, battery: ");
                 Serial.print(battery);
                 Serial.println("%");
+            }
+        }
+        else if (_type == WEIGHMYBRU && length == 20 && pData[0] == 0x03 && pData[1] == 0x0B) {
+            // Parse WeighMyBru scale data packet (20 bytes)
+            // Format: 03 0B [ms_h ms_m ms_l] [unit] [sign] [weight_h weight_m weight_l] ... [checksum]
+
+            // Checksum is in last byte
+            uint8_t checksum = pData[19];
+            uint8_t calculated_checksum = pData[0];
+
+            for (size_t i = 1; i < length - 1; i++) {
+                calculated_checksum ^= pData[i];
+            }
+            
+            if (checksum == calculated_checksum) {
+                // Weight is in bytes 7-9 (high, mid, low), value * 100
+                uint32_t weightRaw = ((uint32_t)pData[7] << 16) | ((uint32_t)pData[8] << 8) | pData[9];
+
+                // Sign is in byte 6: '+' (0x2B/43) or '-' (0x2D/45)
+                bool negative = (pData[6] == 0x2D || pData[6] == 45);
+
+                _currentWeight = weightRaw / 100.0f;
+                if (negative) {
+                    _currentWeight = -_currentWeight;
+                }
+
+                newWeightPacket = true;
+
+                if (_debug) {
+                    Serial.print("WeighMyBru scale - weight: ");
+                    Serial.print(_currentWeight);
+                    Serial.println("g");
+                }
+            }
+            else if (_debug) {
+                Serial.println("Checksum mismatch - ignoring packet");
             }
         }
         else if (_type == DECENT) {
