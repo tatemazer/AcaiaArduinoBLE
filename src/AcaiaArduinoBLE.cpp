@@ -383,7 +383,46 @@ bool AcaiaArduinoBLE::updateConnection() {
                 Serial.print("Found ");
                 Serial.print(services.size());
                 Serial.println(" services");
+
+                for (auto* svc : services) {
+                    if (!svc) {
+                        Serial.println("  [null service pointer]");
+                        continue;
+                    }
+
+                    // Print the service UUID
+                    Serial.print("Service UUID: ");
+                    Serial.println(svc->getUUID().toString().c_str());
+
+                    // Get characteristics for this service
+                    const std::vector<NimBLERemoteCharacteristic*>& chars = svc->getCharacteristics(true);
+
+                    if (chars.empty()) {
+                        Serial.println("  (No characteristics found)");
+                        continue;
+                    }
+
+                    // Print each characteristic
+                    for (auto* chr : chars) {
+                        Serial.print("  Characteristic UUID: ");
+                        Serial.println(chr->getUUID().toString().c_str());
+
+                        Serial.print("    Properties: ");
+
+                        if (chr->canRead())            Serial.print("READ ");
+                        if (chr->canWrite())           Serial.print("WRITE ");
+                        if (chr->canWriteNoResponse()) Serial.print("WRITE_NR ");
+                        if (chr->canNotify())          Serial.print("NOTIFY ");
+                        if (chr->canIndicate())        Serial.print("INDICATE ");
+
+                        Serial.println();
+                    }
+                    Serial.println();
+                }
             }
+
+                   
+
 
             // Try different service UUIDs to determine scale type
             const NimBLERemoteService *pService = nullptr;
