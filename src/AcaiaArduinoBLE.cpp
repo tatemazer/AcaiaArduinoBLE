@@ -408,7 +408,7 @@ bool AcaiaArduinoBLE::updateConnection() {
 
             // Try NEW acaia version
             if (!pService) {
-                pService = _pClient->getService(NimBLEUUID(WRITE_CHAR_NEW_VERSION));
+                pService = _pClient->getService(NimBLEUUID(SUUID_ACAIA_NEW));
 
                 if (pService) {
                     _type = NEW;
