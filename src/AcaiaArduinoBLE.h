@@ -11,6 +11,7 @@
 */
 #pragma once
 
+#define LIBRARY_VERSION        "3.2.0"
 #define WRITE_CHAR_OLD_VERSION "2a80"
 #define READ_CHAR_OLD_VERSION  "2a80"
 #define WRITE_CHAR_NEW_VERSION "49535343-8841-43f4-a8d4-ecbe34729bb3"
