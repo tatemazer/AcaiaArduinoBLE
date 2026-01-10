@@ -27,6 +27,8 @@ The included "shotStopper" example code uses the ShotStopper PCB to make it simp
 
 A kit can also be ordered by visiting [tatemazer.com](https://tatemazer.com/store)
 
+If you choose to build your own from scratch, v2.0 is recommended as it requires only through-hole components
+
 Join the discord for updates and support: https://discord.gg/NMXb5VYtre
 
 [![Video showing developmnent of the shotStopper](https://img.youtube.com/vi/434hrQDGtxo/0.jpg)](https://youtu.be/434hrQDGtxo)
@@ -178,3 +180,4 @@ Felicita Arc support contributions from baettigp
 Bookoo contributions from philgood
 
 lunar 2019 contributions from jniebuhr
+
