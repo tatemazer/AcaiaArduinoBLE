@@ -31,6 +31,9 @@
 #define MAX_SHOT_DURATION_S 50      //Primarily useful for latching switches, since user
                                     // looses control of the paddle once the system
                                     // latches.
+#define RINSE_DURATION_S      3
+#define RINSE_INIT_S          1     // The maximum amount of time the paddle is turned on by
+                                    //  user in order to initiate a rinse.
 #define BUTTON_READ_PERIOD_MS 5
 #define DRIP_DELAY_S          3     // Time after the shot ended to measure the final weight
 
@@ -106,6 +109,10 @@ bool buttonPressed = false; //physical status of button
 bool buttonLatched = false; //electrical status of button
 unsigned long lastButtonRead_ms = 0;
 int newButtonState = 0;
+
+//Rinse
+unsigned long water_start_ms = 0;
+bool rinsing = false;
 
 struct Shot {
   float start_timestamp_s; // Relative to runtime
@@ -191,6 +198,13 @@ void loop() {
   else if(scale.isConnected()){
     scaleConnected_task();
   }
+
+  read_button_task();
+
+  //rinsing only for linea micra/mini
+  if(!MOMENTARY && !REEDSWITCH){
+    rinse_task();
+  }
 }
 
 void setBrewingState(bool brewing){
@@ -237,9 +251,9 @@ void setBrewingState(bool brewing){
       //Pulse button to stop brewing
       digitalWrite(OUT,HIGH);Serial.println("wrote high");
       delay(300);
-      digitalWrite(OUT,LOW);Serial.println("wrote low");
+      digitalWrite(OUT,LOW);Serial.println("wrote low1");
       buttonPressed = false;
-    }else if(!TIMER_ONLY && !MOMENTARY){
+    }else if(!TIMER_ONLY && !MOMENTARY && !rinsing){
       buttonLatched = false;
       buttonPressed = false;
       Serial.println("Button Unlatched and not pressed");
@@ -338,40 +352,9 @@ void scaleConnected_task(){
     Serial.println();
   }
 
-  // Read button every period
-  if(millis() > (lastButtonRead_ms + BUTTON_READ_PERIOD_MS) ){
-    lastButtonRead_ms = millis();
-
-    //push back for new entry
-    for(int i = BUTTON_STATE_ARRAY_LENGTH - 2;i>=0;i--){
-      buttonArr[i+1] = buttonArr[i];
-    }
-    buttonArr[0] = !digitalRead(in); //Active Low
-
-    //only return 1 if contains 1
-    // Also assume the button is off for a few milliseconds
-    // after the shot is done, there can be residual noise
-    // from the reed switch
-    newButtonState = 0;
-    for(int i=0; i<BUTTON_STATE_ARRAY_LENGTH; i++){
-      if(buttonArr[i]){
-        newButtonState = 1;          
-      }
-      //Serial.print(buttonArr[i]);
-    }
-    //Serial.println();
-
-    //The reed switch measurements require a small amount of delay for accuracy.
-    //  if the shot just stopped, assume that the reed switch should read "open" for the first 0.5s
-    if(REEDSWITCH && !shot.brewing && seconds_f() < (shot.start_timestamp_s + shot.end_s + 1)){
-      //Serial.println("force reedSwitch Off");
-      newButtonState = 0;
-    }
-  }
-
   // SHOT INITIATION EVENTS --------------------------------
   
-  //button just pressed (and released)
+  //button just pressed
   if(newButtonState && buttonPressed == false ){
     Serial.println("ButtonPressed");
     buttonPressed = true;
@@ -471,4 +454,81 @@ void scaleConnected_task(){
     }
     Serial.println();
   }
+}
+void read_button_task(){
+  // Read button every period
+  if(millis() > (lastButtonRead_ms + BUTTON_READ_PERIOD_MS) ){
+    lastButtonRead_ms = millis();
+
+    //push back for new entry
+    for(int i = BUTTON_STATE_ARRAY_LENGTH - 2;i>=0;i--){
+      buttonArr[i+1] = buttonArr[i];
+    }
+    buttonArr[0] = !digitalRead(in); //Active Low
+
+    //only return 1 if contains 1
+    // Also assume the button is off for a few milliseconds
+    // after the shot is done, there can be residual noise
+    // from the reed switch
+    newButtonState = 0;
+    for(int i=0; i<BUTTON_STATE_ARRAY_LENGTH; i++){
+      if(buttonArr[i]){
+        newButtonState = 1;          
+      }
+      //Serial.print(buttonArr[i]);
+    }
+    //Serial.println();
+
+    //The reed switch measurements require a small amount of delay for accuracy.
+    //  if the shot just stopped, assume that the reed switch should read "open" for the first 0.5s
+    if(REEDSWITCH && !shot.brewing && seconds_f() < (shot.start_timestamp_s + shot.end_s + 1)){
+      //Serial.println("force reedSwitch Off");
+      newButtonState = 0;
+    }
+  }
+}
+
+
+void rinse_task(){
+
+  //paddle engaged
+  if(!rinsing 
+    && !water_start_ms 
+    && newButtonState 
+    && buttonPressed == false ){
+
+    //proactively force rinse on
+    digitalWrite(OUT,HIGH);Serial.println("wrote high");
+
+    water_start_ms = millis();
+    rinsing = true;
+  }
+
+  //held too long, no longer a rinse
+  if(rinsing 
+    && newButtonState // this shouldn't work but it does?? 
+    && millis() - water_start_ms > RINSE_INIT_S * 1000){
+    Serial.println("rinse timed out, not a rinse");
+    digitalWrite(OUT,LOW);Serial.println("wrote low4");
+    rinsing = false;
+  }
+
+  //paddle released after non-rinse
+  if(!rinsing && !newButtonState && water_start_ms && millis() - water_start_ms > RINSE_INIT_S * 1000){
+
+    //reset timer
+    water_start_ms = 0;
+  }
+  
+
+  //rinse completed
+  if(rinsing && (millis() - water_start_ms) > (RINSE_DURATION_S * 1000)){
+    Serial.println("rinse completed");
+
+    //reset
+    rinsing = false;
+    water_start_ms = 0;
+    digitalWrite(OUT,LOW);Serial.println("wrote low3");
+  }
+  
 }
