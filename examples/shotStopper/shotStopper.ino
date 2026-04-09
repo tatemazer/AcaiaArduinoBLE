@@ -43,14 +43,16 @@
 #define N 10                        // Number of datapoints used to calculate trend line
 
 //User defined***
-#define MOMENTARY false        //Define brew switch style. 
+#define MOMENTARY false       //Define brew switch style. 
                               // True for momentary switches such as GS3 AV, Silvia Pro
                               // false for latching switches such as Linea Mini/Micra
 #define REEDSWITCH false      // Set to true if the brew state is being determined 
                               //  by a reed switch attached to the brew solenoid
 #define AUTOTARE true         // Automatically tare when shot is started 
-                              //  and 3 seconds after a latching switch brew 
+                              // Will tare also 3 seconds after a latching switch brew if CAN_BEEP is false 
                               // (as defined by MOMENTARY)
+#define CAN_BEEP false        // If set, will beep the scale instead of triggering another auto tare after 3 seconds (supported by Bookoo scales only)
+#define CAN_TARE_START_TIMER false // If set, reset timer, start timer and tare are done in one command (supported by Bookoo scales only)
 #define TIMER_ONLY false      // disables brew by weight functionality, and only automates the timer/tare
 //***************
 
@@ -287,7 +289,9 @@ void loop() {
     Serial.println("Button Latched");
     digitalWrite(OUT,HIGH); Serial.println("wrote high");
     // Get the scale to beep to inform user.
-    if(AUTOTARE){
+    if (CAN_BEEP) {
+      scale.beep();
+    } else if(AUTOTARE){
       scale.tare();
     }
   }
@@ -374,10 +378,14 @@ void setBrewingState(bool brewing){
     shot.start_timestamp_s = seconds_f();
     shot.shotTimer = 0;
     shot.datapoints = 0;
-    scale.resetTimer();
-    scale.startTimer();
-    if(AUTOTARE){
-      scale.tare();
+    if (CAN_TARE_START_TIMER && AUTOTARE) {
+      scale.tareStartTimer();
+    } else {
+      scale.resetTimer();
+      scale.startTimer();
+      if(AUTOTARE){
+        scale.tare();
+      }
     }
     Serial.println("Weight Timer End");
   }else{
