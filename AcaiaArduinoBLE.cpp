@@ -215,8 +215,10 @@ bool AcaiaArduinoBLE::tareStartTimer(){
 }
 
 bool AcaiaArduinoBLE::beep(){
-    if(_write.writeValue(BEEP_LEVEL_1_BOOKOO, 6)){
-          Serial.println("beep level write successful");
+
+    // for acaia's, use the tare command to generate the beep
+    if(_write.writeValue((_type == GENERIC ? BEEP_LEVEL_1_BOOKOO : TARE_ACAIA), 6)){
+          Serial.println("beep write successful");
           return true;
     }else{
         _connected = false;
