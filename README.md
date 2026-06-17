@@ -118,7 +118,7 @@ Scale Compatibility:
 
 ☑ Pearl S
 
-❌ Felicita Arc (buggy, see bug report)
+☑ Felicita Arc (under-testing)
 
 ☑ Bookoo
 
