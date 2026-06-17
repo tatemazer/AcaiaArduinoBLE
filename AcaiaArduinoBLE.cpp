@@ -5,6 +5,8 @@
   Released into the public domain.
 
   Adding Generic Scale Support, Pio Baettig
+  Fixing Felicita Arc Bug, A-TWJ
+
 */
 #include "Arduino.h"
 #include "AcaiaArduinoBLE.h"
@@ -23,6 +25,11 @@ byte STOP_TIMER_GENERIC[6]          = { 0x03, 0x0a, 0x05, 0x00, 0x00, 0x0d };
 byte RESET_TIMER_GENERIC[6]         = { 0x03, 0x0a, 0x06, 0x00, 0x00, 0x0c };
 byte TARE_START_TIMER_BOOKOO[6]     = { 0x03, 0x0a, 0x07, 0x00, 0x00, 0x00 };
 byte BEEP_LEVEL_1_BOOKOO[6]         = { 0x03, 0x0a, 0x02, 0x00, 0x01, 0x0a };
+byte TARE_FELICITA[1]               = { 0x54 }; // 'Tare'
+byte START_TIMER_FELICITA[1]        = { 0x52 }; // 'Start_Timer'
+byte STOP_TIMER_FELICITA[1]         = { 0x53 }; // 'Stop_Timer'
+byte RESET_TIMER_FELICITA[1]        = { 0x43 }; // 'Reset_Timer'
+byte WEIGHT_TIMER_MODE_FELICITA[1]  = { 0x32 }; // 'Weight+timer mode (known-good wake state)
 
 /* Generic commands from
    https://github.com/graphefruit/Beanconqueror/blob/master/src/classes/devices/felicita/constants.ts
@@ -118,6 +125,11 @@ bool AcaiaArduinoBLE::init(String mac){
                 _type   = GENERIC;
 	            _write  = peripheral.characteristic(WRITE_CHAR_GENERIC);
 	            _read   = peripheral.characteristic(READ_CHAR_GENERIC);
+            } else if(peripheral.characteristic(READ_CHAR_FELICITA).canSubscribe()){
+                Serial.println("Felicita Arc Detected");
+                _type   = FELICITA;
+                _write  = peripheral.characteristic(WRITE_CHAR_FELICITA);
+                _read   = peripheral.characteristic(READ_CHAR_FELICITA);
             }
             else{
                 Serial.println("unable to determine scale type");
@@ -134,17 +146,28 @@ bool AcaiaArduinoBLE::init(String mac){
                 Serial.println("subscribed!");
             }
         
-            if(_write.writeValue(IDENTIFY, 20)){
-                Serial.println("identify write successful");
-            }else{
-                Serial.println("identify write failed");
+            if(_type == OLD || _type == NEW){
+                if(_write.writeValue(IDENTIFY, sizeof(IDENTIFY))){
+                    Serial.println("identify write successful");
+                }else{
+                    Serial.println("identify write failed");
+                    return false; 
+                }
+                if(_write.writeValue(NOTIFICATION_REQUEST, sizeof(NOTIFICATION_REQUEST))){
+                    Serial.println("notification request write successful");
+                }else{
+                    Serial.println("notification request write failed");
                 return false; 
-            }
-            if(_write.writeValue(NOTIFICATION_REQUEST,14)){
-                Serial.println("notification request write successful");
-            }else{
-                Serial.println("notification request write failed");
-                return false; 
+                                }
+            }else if(_type == FELICITA){
+                // Wake the Felicita into a deterministic, known-good mode
+                // (weight + timer) instead of whatever IDENTIFY used to leave it in.
+                if(_write.writeValue(WEIGHT_TIMER_MODE_FELICITA, sizeof(WEIGHT_TIMER_MODE_FELICITA))){
+                    Serial.println("felicita weight+timer mode set");
+                }else{
+                    Serial.println("felicita mode set failed");
+                    return false;
+                }
             }
             _connected = true;
             _packetPeriod = 0;
@@ -156,8 +179,18 @@ bool AcaiaArduinoBLE::init(String mac){
     return false;    
 }
 
+// All command writes now use sizeof() so the byte count always matches the
+// array. Felicita commands are single ASCII bytes; sending the right length
+// (1) is essential -- the old code wrote 20/7 bytes from these 1-byte arrays,
+// leaking adjacent memory to the scale as extra commands.
 bool AcaiaArduinoBLE::tare(){
-    if(_write.writeValue((_type == GENERIC ? TARE_GENERIC : TARE_ACAIA), 6)){
+    bool ok;
+    switch(_type){
+        case GENERIC:  ok = _write.writeValue(TARE_GENERIC,  sizeof(TARE_GENERIC));  break;
+        case FELICITA: ok = _write.writeValue(TARE_FELICITA, sizeof(TARE_FELICITA)); break;
+        default:       ok = _write.writeValue(TARE_ACAIA,    sizeof(TARE_ACAIA));    break;
+    }
+    if(ok){
           Serial.println("tare write successful");
           return true;
     }else{
@@ -168,8 +201,13 @@ bool AcaiaArduinoBLE::tare(){
 }
 
 bool AcaiaArduinoBLE::startTimer(){
-    if(_write.writeValue((_type == GENERIC ? START_TIMER_GENERIC : START_TIMER),
-                         (_type == GENERIC ? 6                   : 7))){
+    bool ok;
+    switch(_type){
+        case GENERIC:  ok = _write.writeValue(START_TIMER_GENERIC,  sizeof(START_TIMER_GENERIC));  break;
+        case FELICITA: ok = _write.writeValue(START_TIMER_FELICITA, sizeof(START_TIMER_FELICITA)); break;
+        default:       ok = _write.writeValue(START_TIMER,          sizeof(START_TIMER));          break;
+    }
+    if(ok){
 	    Serial.println("start timer write successful");
         return true;
     }else{
@@ -180,8 +218,13 @@ bool AcaiaArduinoBLE::startTimer(){
 }
 
 bool AcaiaArduinoBLE::stopTimer(){
-    if(_write.writeValue((_type == GENERIC ? STOP_TIMER_GENERIC : STOP_TIMER),
-                         (_type == GENERIC ? 6                  : 7 ))){
+    bool ok;
+    switch(_type){
+        case GENERIC:  ok = _write.writeValue(STOP_TIMER_GENERIC,  sizeof(STOP_TIMER_GENERIC));  break;
+        case FELICITA: ok = _write.writeValue(STOP_TIMER_FELICITA, sizeof(STOP_TIMER_FELICITA)); break;
+        default:       ok = _write.writeValue(STOP_TIMER,          sizeof(STOP_TIMER));          break;
+    }
+    if(ok){
         Serial.println("stop timer write successful");
         return true;
     }else{
@@ -192,8 +235,13 @@ bool AcaiaArduinoBLE::stopTimer(){
 }
 
 bool AcaiaArduinoBLE::resetTimer(){
-    if(_write.writeValue((_type == GENERIC ? RESET_TIMER_GENERIC : RESET_TIMER),
-                         (_type == GENERIC ? 6                  : 7 ))){
+    bool ok;
+    switch(_type){
+        case GENERIC:  ok = _write.writeValue(RESET_TIMER_GENERIC,  sizeof(RESET_TIMER_GENERIC));  break;
+        case FELICITA: ok = _write.writeValue(RESET_TIMER_FELICITA, sizeof(RESET_TIMER_FELICITA)); break;
+        default:       ok = _write.writeValue(RESET_TIMER,          sizeof(RESET_TIMER));          break;
+    }
+    if(ok){
         Serial.println("reset timer write successful");
         return true;
     }else{
@@ -269,7 +317,8 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
           (13 >= l && OLD != _type) ||      //13 byte packets for pyxis and older lunar 2021 fw
           (14 == l && OLD == _type) ||      //14 byte packets for lunar 2021 AL008
           (17 == l && NEW == _type) ||      //17 byte packets for newer lunar 2021 fw
-          (20 == l && GENERIC == _type)     //18 byte packets for generic scales
+          (20 == l && GENERIC == _type) ||  //20 byte packets for generic scales
+          (18 == l && FELICITA == _type)    //18 byte packets for Felicita Arc
         ){
             _read.readValue(input, (l > 13) ? 13 : l); // readValue() seems to crash whenever l > weight packet (10, 13 or 18)
 
@@ -313,6 +362,19 @@ bool AcaiaArduinoBLE::newWeightAvailable(){
                 }
             _currentWeight = _currentWeight / 100;
             newWeightPacket = true;
+
+        }else if( FELICITA == _type && l == 18){
+            // Felicita Arc 18-byte ASCII packet (matches pyfelicita lib):
+            //   byte 2     = sign ('-'/0x2D = negative)
+            //   bytes 3..8 = six ASCII weight digits, value / 100 = grams
+            _currentWeight = (input[2] == 0x2D ? -1 : 1)
+                * ( (input[3] - 0x30) * 1000
+                  + (input[4] - 0x30) * 100
+                  + (input[5] - 0x30) * 10
+                  + (input[6] - 0x30) * 1
+                  + (input[7] - 0x30) * 0.1
+                  + (input[8] - 0x30) * 0.01 );
+            newWeightPacket = true;
         }
         if(newWeightPacket){
             if(_lastPacket){
@@ -335,7 +397,8 @@ bool AcaiaArduinoBLE::isScaleName(String name){
         || nameShort == "LUNAR"
         || nameShort == "PEARL"
         || nameShort == "PROCH"
-        || nameShort == "BOOKO";
+        || nameShort == "BOOKO"
+        || nameShort == "FELIC";
 }
 
 void AcaiaArduinoBLE::exploreService(BLEService service) {
