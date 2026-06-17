@@ -1,5 +1,5 @@
 # AcaiaArduinoBLE
-Acaia / Bookoo Scale Gateway using the ArduinoBLE library for devices such as the esp32, arduino nano esp32, and arduino nano iot 33.
+Acaia / Bookoo / Felicita Scale Gateway using the ArduinoBLE library for esp32-based devices.
 This is an Arduino Library which can be found in the Arduino IDE Library Manager.
 
 ## Scale Compatibility
@@ -13,12 +13,11 @@ This is an Arduino Library which can be found in the Arduino IDE Library Manager
 | Acaia  | Pyxis   | ----                       | v1.0.022 | Good  | Not Recommended (too sensitive) | Yes | Yes
 | Bookoo | Themis  Mini | ----                       | v1.0.5   | Great | Yes | Yes | Yes 
 | Bookoo | Themis Ultra  | ----                 | ----   | Great | Yes | Yes | Yes 
+| Felicita | Arc   | ----                       | ----   | ---- | Yes | Yes | Yes 
 
 
 ## Requirements
 This library is intended to be used with any arduino device which is compatible with the [ArduinoBLE](https://www.arduino.cc/reference/en/libraries/arduinoble/) library.
-
-As of version V2.0.0, non-volatile storage for the setpoint and offset is only available for ESP32-based devices.
 
 ## Printed Circuit Board
 ![shotStopperV3 screenshot](https://github.com/user-attachments/assets/a09fe8fb-3705-44c0-88a2-07c61d67b8f6)
@@ -72,43 +71,7 @@ You can find a demo on Youtube:
 
 [![Video showing an shotStopper pulling a shot on a silvia pro](https://img.youtube.com/vi/oP3Cmke6daE/0.jpg)](https://www.youtube.com/shorts/oP3Cmke6daE)
 
-## Project Status
-
-Firmware:
-
-☑ Connect Acaia Pyxis to ESP32
-
-☑ Tare Command
-
-☑ Receive Weight Data
-
-☑ shotStopper Espresso Machine Brew-By-Weight Firmware
-
-☑ Compatibility with Lunar (Pre-2021)
-
-☑ Compatibility with Lunar 2021
-
-☑ Positive *and* negative weight support
-
-☑ Latching-switch support (LM Mini, LM Micra, etc)
-
-☑ Auto-reconnect
-
-☑ change setpoint over bluetooth
-
-☑ maintain setpoint and offset after powercycle
-
-☑ auto start/stop timer
-
-☑ flowrate-based shot end-time
-
-☑ auto timer reset
-
-⬜ Improve Pyxis Tare Command Reliability
-
-
-
-Scale Compatibility:
+## Scale Compatibility:
 
 ☑ Acaia Pyxis
 
@@ -118,56 +81,13 @@ Scale Compatibility:
 
 ☑ Pearl S
 
-☑ Felicita Arc (under-testing)
+☑ Felicita Arc
 
 ☑ Bookoo
 
-Hardware:
-
-☑ PCB Design for Low Voltage Switches (V1.1)
-
-☑ 3D-Printed Half Case
-
-☑ Compatibility with La Marzocco GS3 AV
-
-☑ Compatibility with Rancilio Silvia Pro (and Pro X)
-
-❌ Compatibility with La Marzocco Linea Classic S (Not Compatible, requires investigation)
-
-☑ Compatibility with Stone Espresso (requires reed switch)
-
-☑ Compatibility with La Marzocco Mini
-
-☑ Compatibility with La Marzocco Micra (V2.0)
-
-☑ Powered by espresso machine (V2.0)
-
-☑ Reed switch input (V2.0)
-
-☑ on-board esp32 module (V3.0)
-
-⬜ Compatibility with Breville (presumed but untested)
-
-⬜ Support for High-Voltage Switches (Hall-Effect Sensor and SSR?)
-
-Sales:
-
-☑ Beta Users Determined
-
-☑ Beta Units Built
-
-☑ Beta Units Shipped
-
-☑ Beta Test Complete
-
-☑ Sales Open For GS3, Silvia, and Micra In the US
-
-☑ Sales Open for Linea Mini
-
-☑ International Sales Open 
 
 ## Bugs/Missing
-1. Tare command is less reliable than pressing the tare button.
+1. Tare command is less reliable than pressing the tare button for pyxis
 2. Only supports grams.
 
 # Acknowledgement
@@ -175,9 +95,9 @@ This is largely a basic port of the  [LunarGateway](https://github.com/frowin/Lu
 
 In addition to some minor notes from [pyacaia](https://github.com/lucapinello/pyacaia) library written for raspberryPI.
 
-Felicita Arc support contributions from baettigp
+Felicita Arc support contributions from baettigp and A-TWJ
 
-Bookoo contributions from philgood
+Bookoo contributions from philgood and same31
 
 lunar 2019 contributions from jniebuhr
 
