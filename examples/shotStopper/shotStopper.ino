@@ -342,7 +342,7 @@ void loop() {
   if(!TIMER_ONLY
   && shot.start_timestamp_s
   && shot.end_s
-  && currentWeight >= (goalWeight - weightOffset)
+  && currentWeight > 1 // espresso is present
   && seconds_f() > shot.start_timestamp_s + shot.end_s + DRIP_DELAY_S){
     shot.start_timestamp_s = 0;
     shot.end_s = 0;
