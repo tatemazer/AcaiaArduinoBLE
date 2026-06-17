@@ -49,9 +49,8 @@
 #define REEDSWITCH false      // Set to true if the brew state is being determined 
                               //  by a reed switch attached to the brew solenoid
 #define AUTOTARE true         // Automatically tare when shot is started 
-                              // Will tare also 3 seconds after a latching switch brew if CAN_BEEP is false 
+                              // Will tare also 3 seconds after a latching switch brew for non-bookoo scales
                               // (as defined by MOMENTARY)
-#define CAN_BEEP false        // If set, will beep the scale instead of triggering another auto tare after 3 seconds (supported by Bookoo scales only)
 #define CAN_TARE_START_TIMER false // If set, reset timer, start timer and tare are done in one command (supported by Bookoo scales only)
 #define TIMER_ONLY false      // disables brew by weight functionality, and only automates the timer/tare
 //***************
@@ -289,10 +288,8 @@ void loop() {
     Serial.println("Button Latched");
     digitalWrite(OUT,HIGH); Serial.println("wrote high");
     // Get the scale to beep to inform user.
-    if (CAN_BEEP) {
+    if(AUTOTARE){
       scale.beep();
-    } else if(AUTOTARE){
-      scale.tare();
     }
   }
 
