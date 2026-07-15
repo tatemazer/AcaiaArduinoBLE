@@ -93,6 +93,7 @@ int OFF[3] = {0,0,0};
 int currentColor[3] = {0,0,0};
 
 AcaiaArduinoBLE scale(DEBUG);
+static unsigned long lastConnectAttempt = 0;
 float currentWeight = 0;
 uint8_t goalWeight = 0;      // Goal Weight to be read from EEPROM
 float weightOffset = 0;
@@ -172,22 +173,125 @@ void setup() {
 
 void loop() {
 
-  // Connect to scale
-  while(!scale.isConnected()){
-
-    setColor(RED);
-    scale.init(); 
-    currentWeight = 0;
-    if(shot.brewing){
-      shot.brewing = false;
-      shot.end = ENDTYPE::DISCONNECT;
-      setBrewingState(false);
-    }
-    if(scale.isConnected()){
-      setColor(YELLOW);
-    }
+  // Attempt to connect to scale every 1 seconds
+  if(!scale.isConnected() & millis() - lastConnectAttempt >= 1000){
+      lastConnectAttempt = millis();
+      setColor(RED);
+      scale.init(); 
+      currentWeight = 0;
+      if(shot.brewing){
+        shot.brewing = false;
+        shot.end = ENDTYPE::DISCONNECT;
+        setBrewingState(false);
+      }
+      if(scale.isConnected()){
+        setColor(YELLOW);
+      }
   }
+  else if(scale.isConnected()){
+    scaleConnected_task();
+  }
+}
 
+void setBrewingState(bool brewing){
+  if(brewing){
+    Serial.println("shot started");
+    shot.start_timestamp_s = seconds_f();
+    shot.shotTimer = 0;
+    shot.datapoints = 0;
+    if (CAN_TARE_START_TIMER && AUTOTARE) {
+      scale.tareStartTimer();
+    } else {
+      scale.resetTimer();
+      scale.startTimer();
+      if(AUTOTARE){
+        scale.tare();
+      }
+    }
+    Serial.println("Weight Timer End");
+  }else{
+    Serial.print("ShotEnded by ");
+    switch (shot.end) {
+      case ENDTYPE::TIME:
+        Serial.println("time");
+        break;
+      case ENDTYPE::WEIGHT:
+        Serial.println("weight");
+        break;
+      case ENDTYPE::BUTTON:
+        Serial.println("button");
+        break;
+      case ENDTYPE::DISCONNECT:
+        Serial.println("disconnect");
+        break;
+      case ENDTYPE::UNDEF:
+        Serial.println("undef");
+        break;
+    }
+
+    shot.end_s = seconds_f() - shot.start_timestamp_s;
+    scale.stopTimer();
+    if(!TIMER_ONLY 
+    && MOMENTARY 
+    && (ENDTYPE::WEIGHT == shot.end || ENDTYPE::TIME == shot.end)){
+      //Pulse button to stop brewing
+      digitalWrite(OUT,HIGH);Serial.println("wrote high");
+      delay(300);
+      digitalWrite(OUT,LOW);Serial.println("wrote low");
+      buttonPressed = false;
+    }else if(!TIMER_ONLY && !MOMENTARY){
+      buttonLatched = false;
+      buttonPressed = false;
+      Serial.println("Button Unlatched and not pressed");
+      digitalWrite(OUT,LOW); Serial.println("wrote low");
+    }
+  } 
+
+  // Reset
+  shot.end = ENDTYPE::UNDEF;
+}
+void calculateEndTime(Shot* s){
+  
+  // Do not  predict end time if there aren't enough espresso measurements yet
+  if( (s->datapoints < N) || (s->weight[s->datapoints-1] < 10) ){
+    s->expected_end_s = MAX_SHOT_DURATION_S;
+  }
+  else{
+    //Get line of best fit (y=mx+b) from the last 10 measurements 
+    float sumXY = 0, sumX = 0, sumY = 0, sumSquaredX = 0, m = 0, b = 0, meanX = 0, meanY = 0;
+
+    for(int i = s->datapoints - N; i < s->datapoints; i++){
+      sumXY+=s->time_s[i]*s->weight[i];
+      sumX+=s->time_s[i];
+      sumY+=s->weight[i];
+      sumSquaredX += ( s->time_s[i] * s->time_s[i] );
+    }
+
+    m = (N*sumXY-sumX*sumY) / (N*sumSquaredX-(sumX*sumX));
+    meanX = sumX/N;
+    meanY = sumY/N;
+    b = meanY-m*meanX;
+
+    //Calculate time at which goal weight will be reached (x = (y-b)/m)
+    // if M is negative (which can happen during a blooming shot when the flow stops) assume max duration (issue #29)
+    s->expected_end_s = (m < 0) ? MAX_SHOT_DURATION_S : (goalWeight - weightOffset - b)/m;
+  }
+}
+
+float seconds_f(){
+  return millis()/1000.0;
+}
+
+void setColor(int rgb[3]){
+  analogWrite(LED_RED,   255-rgb[0] );
+  analogWrite(LED_GREEN, 255-rgb[1] );
+  analogWrite(LED_BLUE,  255-rgb[2] );
+  currentColor[0] = rgb[0];
+  currentColor[1] = rgb[1];
+  currentColor[2] = rgb[2];
+}
+
+void scaleConnected_task(){
   // Check for setpoint updates
   BLE.poll();
   if (weightCharacteristic.written()) {
@@ -367,102 +471,4 @@ void loop() {
     }
     Serial.println();
   }
-}
-
-void setBrewingState(bool brewing){
-  if(brewing){
-    Serial.println("shot started");
-    shot.start_timestamp_s = seconds_f();
-    shot.shotTimer = 0;
-    shot.datapoints = 0;
-    if (CAN_TARE_START_TIMER && AUTOTARE) {
-      scale.tareStartTimer();
-    } else {
-      scale.resetTimer();
-      scale.startTimer();
-      if(AUTOTARE){
-        scale.tare();
-      }
-    }
-    Serial.println("Weight Timer End");
-  }else{
-    Serial.print("ShotEnded by ");
-    switch (shot.end) {
-      case ENDTYPE::TIME:
-        Serial.println("time");
-        break;
-      case ENDTYPE::WEIGHT:
-        Serial.println("weight");
-        break;
-      case ENDTYPE::BUTTON:
-        Serial.println("button");
-        break;
-      case ENDTYPE::DISCONNECT:
-        Serial.println("disconnect");
-        break;
-      case ENDTYPE::UNDEF:
-        Serial.println("undef");
-        break;
-    }
-
-    shot.end_s = seconds_f() - shot.start_timestamp_s;
-    scale.stopTimer();
-    if(!TIMER_ONLY 
-    && MOMENTARY 
-    && (ENDTYPE::WEIGHT == shot.end || ENDTYPE::TIME == shot.end)){
-      //Pulse button to stop brewing
-      digitalWrite(OUT,HIGH);Serial.println("wrote high");
-      delay(300);
-      digitalWrite(OUT,LOW);Serial.println("wrote low");
-      buttonPressed = false;
-    }else if(!TIMER_ONLY && !MOMENTARY){
-      buttonLatched = false;
-      buttonPressed = false;
-      Serial.println("Button Unlatched and not pressed");
-      digitalWrite(OUT,LOW); Serial.println("wrote low");
-    }
-  } 
-
-  // Reset
-  shot.end = ENDTYPE::UNDEF;
-}
-void calculateEndTime(Shot* s){
-  
-  // Do not  predict end time if there aren't enough espresso measurements yet
-  if( (s->datapoints < N) || (s->weight[s->datapoints-1] < 10) ){
-    s->expected_end_s = MAX_SHOT_DURATION_S;
-  }
-  else{
-    //Get line of best fit (y=mx+b) from the last 10 measurements 
-    float sumXY = 0, sumX = 0, sumY = 0, sumSquaredX = 0, m = 0, b = 0, meanX = 0, meanY = 0;
-
-    for(int i = s->datapoints - N; i < s->datapoints; i++){
-      sumXY+=s->time_s[i]*s->weight[i];
-      sumX+=s->time_s[i];
-      sumY+=s->weight[i];
-      sumSquaredX += ( s->time_s[i] * s->time_s[i] );
-    }
-
-    m = (N*sumXY-sumX*sumY) / (N*sumSquaredX-(sumX*sumX));
-    meanX = sumX/N;
-    meanY = sumY/N;
-    b = meanY-m*meanX;
-
-    //Calculate time at which goal weight will be reached (x = (y-b)/m)
-    // if M is negative (which can happen during a blooming shot when the flow stops) assume max duration (issue #29)
-    s->expected_end_s = (m < 0) ? MAX_SHOT_DURATION_S : (goalWeight - weightOffset - b)/m;
-  }
-}
-
-float seconds_f(){
-  return millis()/1000.0;
-}
-
-void setColor(int rgb[3]){
-  analogWrite(LED_RED,   255-rgb[0] );
-  analogWrite(LED_GREEN, 255-rgb[1] );
-  analogWrite(LED_BLUE,  255-rgb[2] );
-  currentColor[0] = rgb[0];
-  currentColor[1] = rgb[1];
-  currentColor[2] = rgb[2];
 }

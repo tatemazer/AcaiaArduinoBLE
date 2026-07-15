@@ -173,9 +173,10 @@ bool AcaiaArduinoBLE::init(String mac){
             _packetPeriod = 0;
             return true;
         }
-    }while(millis() - start < 10000);
+    }while(millis() - start < 100);
 
     Serial.println("failed to find scale");
+    BLE.stopScan(); // Clean up and stop the BLE hardware scan before exiting!
     return false;    
 }
 
