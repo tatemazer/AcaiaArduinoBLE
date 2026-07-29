@@ -540,6 +540,10 @@ void rinse_task(){
     rinsing = false;
     water_start_ms = 0;
     digitalWrite(OUT,LOW);Serial.println("wrote low3");
+    if(scale.isConnected()){
+      scale.stopTimer();
+    }
+    
   }
   
 }
