@@ -456,7 +456,13 @@ void scaleConnected_task(){
   }
 }
 void read_button_task(){
-  // Read button every period
+  // If not using a reed switch, read the switch directly with zero delay/filtering
+  if(!REEDSWITCH){
+    newButtonState = !digitalRead(in); // Active Low
+    return;
+  }
+
+  // Read button every period (Only used when REEDSWITCH == true)
   if(millis() > (lastButtonRead_ms + BUTTON_READ_PERIOD_MS) ){
     lastButtonRead_ms = millis();
 
@@ -497,19 +503,24 @@ void rinse_task(){
     && newButtonState 
     && buttonPressed == false ){
 
-    //proactively force rinse on
-    digitalWrite(OUT,HIGH);Serial.println("wrote high");
-
     water_start_ms = millis();
     rinsing = true;
   }
 
-  //held too long, no longer a rinse
+  // paddle released within RINSE_INIT_S window -> NOW engage shotStopper to finish the rinse!
   if(rinsing 
-    && newButtonState // this shouldn't work but it does?? 
+    && !newButtonState 
+    && water_start_ms 
+    && (millis() - water_start_ms <= RINSE_INIT_S * 1000)){
+    
+    digitalWrite(OUT, HIGH); Serial.println("wrote high (rinse takeover)");
+  }
+
+  // held too long, no longer a rinse
+  if(rinsing 
+    && newButtonState 
     && millis() - water_start_ms > RINSE_INIT_S * 1000){
     Serial.println("rinse timed out, not a rinse");
-    digitalWrite(OUT,LOW);Serial.println("wrote low4");
     rinsing = false;
   }
 
