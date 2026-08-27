@@ -43,7 +43,7 @@
 #define N 10                        // Number of datapoints used to calculate trend line
 
 //User defined***
-#define MOMENTARY false       //Define brew switch style. 
+#define MOMENTARY true       //Define brew switch style. 
                               // True for momentary switches such as GS3 AV, Silvia Pro
                               // false for latching switches such as Linea Mini/Micra
 #define REEDSWITCH false      // Set to true if the brew state is being determined 
@@ -338,36 +338,9 @@ void scaleConnected_task(){
     Serial.println();
   }
 
-  // Read button every period
-  if(millis() > (lastButtonRead_ms + BUTTON_READ_PERIOD_MS) ){
-    lastButtonRead_ms = millis();
-
-    //push back for new entry
-    for(int i = BUTTON_STATE_ARRAY_LENGTH - 2;i>=0;i--){
-      buttonArr[i+1] = buttonArr[i];
-    }
-    buttonArr[0] = !digitalRead(in); //Active Low
-
-    //only return 1 if contains 1
-    // Also assume the button is off for a few milliseconds
-    // after the shot is done, there can be residual noise
-    // from the reed switch
-    newButtonState = 0;
-    for(int i=0; i<BUTTON_STATE_ARRAY_LENGTH; i++){
-      if(buttonArr[i]){
-        newButtonState = 1;          
-      }
-      //Serial.print(buttonArr[i]);
-    }
-    //Serial.println();
-
-    //The reed switch measurements require a small amount of delay for accuracy.
-    //  if the shot just stopped, assume that the reed switch should read "open" for the first 0.5s
-    if(REEDSWITCH && !shot.brewing && seconds_f() < (shot.start_timestamp_s + shot.end_s + 1)){
-      //Serial.println("force reedSwitch Off");
-      newButtonState = 0;
-    }
-  }
+ 
+  newButtonState= !digitalRead(in); //Active Low
+  
 
   // SHOT INITIATION EVENTS --------------------------------
   
