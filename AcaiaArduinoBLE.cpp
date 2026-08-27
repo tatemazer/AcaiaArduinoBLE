@@ -31,6 +31,21 @@ byte STOP_TIMER_FELICITA[1]         = { 0x53 }; // 'Stop_Timer'
 byte RESET_TIMER_FELICITA[1]        = { 0x43 }; // 'Reset_Timer'
 byte WEIGHT_TIMER_MODE_FELICITA[1]  = { 0x32 }; // 'Weight+timer mode (known-good wake state)
 
+// Helper struct layout to enable BLEWriteWithoutResponse (0x04) in stock ArduinoBLE
+struct RemoteCharAccess {
+    void* vtable;
+    String uuid;
+    int refCount;
+    uint16_t connectionHandle;
+    uint16_t startHandle;
+    uint8_t properties;
+};
+struct CharAccess {
+    void* vtable;
+    void* local;
+    RemoteCharAccess* remote;
+};
+
 /* Generic commands from
    https://github.com/graphefruit/Beanconqueror/blob/master/src/classes/devices/felicita/constants.ts
 */
@@ -135,6 +150,11 @@ bool AcaiaArduinoBLE::init(String mac){
                 Serial.println("unable to determine scale type");
                 return false;
             }
+            // Enable non-blocking writeCmd in stock ArduinoBLE by setting BLEWriteWithoutResponse flag (0x04)
+            CharAccess* ca = (CharAccess*)(void*)&_write;
+            if (ca && ca->remote) {
+                ca->remote->properties |= 0x04;
+            }
 
             if(!_read.canSubscribe()){
                 Serial.println("unable to subscribe to READ");
@@ -187,9 +207,9 @@ bool AcaiaArduinoBLE::init(String mac){
 bool AcaiaArduinoBLE::tare(){
     bool ok;
     switch(_type){
-        case GENERIC:  ok = _write.writeValue(TARE_GENERIC,  sizeof(TARE_GENERIC));  break;
-        case FELICITA: ok = _write.writeValue(TARE_FELICITA, sizeof(TARE_FELICITA)); break;
-        default:       ok = _write.writeValue(TARE_ACAIA,    sizeof(TARE_ACAIA));    break;
+        case GENERIC:  ok = _write.writeValue(TARE_GENERIC,  sizeof(TARE_GENERIC),  false); break;
+        case FELICITA: ok = _write.writeValue(TARE_FELICITA, sizeof(TARE_FELICITA), false); break;
+        default:       ok = _write.writeValue(TARE_ACAIA,    sizeof(TARE_ACAIA),    false); break;
     }
     if(ok){
           Serial.println("tare write successful");
@@ -204,9 +224,9 @@ bool AcaiaArduinoBLE::tare(){
 bool AcaiaArduinoBLE::startTimer(){
     bool ok;
     switch(_type){
-        case GENERIC:  ok = _write.writeValue(START_TIMER_GENERIC,  sizeof(START_TIMER_GENERIC));  break;
-        case FELICITA: ok = _write.writeValue(START_TIMER_FELICITA, sizeof(START_TIMER_FELICITA)); break;
-        default:       ok = _write.writeValue(START_TIMER,          sizeof(START_TIMER));          break;
+        case GENERIC:  ok = _write.writeValue(START_TIMER_GENERIC,  sizeof(START_TIMER_GENERIC),  false); break;
+        case FELICITA: ok = _write.writeValue(START_TIMER_FELICITA, sizeof(START_TIMER_FELICITA), false); break;
+        default:       ok = _write.writeValue(START_TIMER,          sizeof(START_TIMER),          false); break;
     }
     if(ok){
 	    Serial.println("start timer write successful");
@@ -221,9 +241,9 @@ bool AcaiaArduinoBLE::startTimer(){
 bool AcaiaArduinoBLE::stopTimer(){
     bool ok;
     switch(_type){
-        case GENERIC:  ok = _write.writeValue(STOP_TIMER_GENERIC,  sizeof(STOP_TIMER_GENERIC));  break;
-        case FELICITA: ok = _write.writeValue(STOP_TIMER_FELICITA, sizeof(STOP_TIMER_FELICITA)); break;
-        default:       ok = _write.writeValue(STOP_TIMER,          sizeof(STOP_TIMER));          break;
+        case GENERIC:  ok = _write.writeValue(STOP_TIMER_GENERIC,  sizeof(STOP_TIMER_GENERIC),  false); break;
+        case FELICITA: ok = _write.writeValue(STOP_TIMER_FELICITA, sizeof(STOP_TIMER_FELICITA), false); break;
+        default:       ok = _write.writeValue(STOP_TIMER,          sizeof(STOP_TIMER),          false); break;
     }
     if(ok){
         Serial.println("stop timer write successful");
@@ -238,9 +258,9 @@ bool AcaiaArduinoBLE::stopTimer(){
 bool AcaiaArduinoBLE::resetTimer(){
     bool ok;
     switch(_type){
-        case GENERIC:  ok = _write.writeValue(RESET_TIMER_GENERIC,  sizeof(RESET_TIMER_GENERIC));  break;
-        case FELICITA: ok = _write.writeValue(RESET_TIMER_FELICITA, sizeof(RESET_TIMER_FELICITA)); break;
-        default:       ok = _write.writeValue(RESET_TIMER,          sizeof(RESET_TIMER));          break;
+        case GENERIC:  ok = _write.writeValue(RESET_TIMER_GENERIC,  sizeof(RESET_TIMER_GENERIC),  false); break;
+        case FELICITA: ok = _write.writeValue(RESET_TIMER_FELICITA, sizeof(RESET_TIMER_FELICITA), false); break;
+        default:       ok = _write.writeValue(RESET_TIMER,          sizeof(RESET_TIMER),          false); break;
     }
     if(ok){
         Serial.println("reset timer write successful");
@@ -253,7 +273,7 @@ bool AcaiaArduinoBLE::resetTimer(){
 }
 
 bool AcaiaArduinoBLE::tareStartTimer(){
-    if(_write.writeValue(TARE_START_TIMER_BOOKOO, 6)){
+    if(_write.writeValue(TARE_START_TIMER_BOOKOO, 6, false)){
           Serial.println("tare and start timer write successful");
           return true;
     }else{
@@ -266,7 +286,7 @@ bool AcaiaArduinoBLE::tareStartTimer(){
 bool AcaiaArduinoBLE::beep(){
 
     // for acaia's, use the tare command to generate the beep
-    if(_write.writeValue((_type == GENERIC ? BEEP_LEVEL_1_BOOKOO : TARE_ACAIA), 6)){
+    if(_write.writeValue((_type == GENERIC ? BEEP_LEVEL_1_BOOKOO : TARE_ACAIA), 6, false)){
           Serial.println("beep write successful");
           return true;
     }else{
@@ -277,7 +297,7 @@ bool AcaiaArduinoBLE::beep(){
 }
 
 bool AcaiaArduinoBLE::heartbeat(){
-    if(_write.writeValue(HEARTBEAT, 7)){
+    if(_write.writeValue(HEARTBEAT, 7, false)){
         _lastHeartBeat = millis();
         return true;
     }else{
